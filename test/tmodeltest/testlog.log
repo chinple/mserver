@@ -1,0 +1,9 @@
+
+<TestCase>  [casename] modelView [param] {"letter": "a"} [description] (letter:a)
+  <Result>  [time] 0.0 [casename] modelView [rescode] 0 [result] Passed
+
+<TestCase>  [casename] modelView1 [param] {"letter": "b"} [description] ([1]letter:b)
+  <Result>  [time] 0.0 [casename] modelView1 [rescode] 0 [result] Passed
+
+<TestCase>  [casename] modelView2 [param] {"letter": "c"} [description] ([2]letter:c)
+  <Result>  [time] 0.0 [casename] modelView2 [rescode] 0 [result] Passed
