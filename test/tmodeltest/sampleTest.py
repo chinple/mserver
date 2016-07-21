@@ -19,8 +19,5 @@ class SampleTestCase(TestCaseBase):
         return "OK"
 
 if __name__ == "__main__":
-    s = SampleTestCase()
-    print(eval(s.__class__.__name__)().sampleFun())
-    print(s.__class__().sampleFun())
-#     from mtest import testing
-#     testing("-r param ")
+    from mtest import testing
+    testing("-r run ")

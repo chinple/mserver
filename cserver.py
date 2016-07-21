@@ -7,13 +7,32 @@ from server.cdriver import ServerDriver
 sdriver = ServerDriver()
 cprop = sdriver.cprop
 
+# Server api example, see @SampleServerApi:
+#
+# @cloudModule()
+# class SampleServerApi:
+#     def emptyCall(self):
+#         return "emptyCall"
+#     def callWithArgs(self, callId, method="post"):
+#         return "callId: %s" % callId
+# can be called by http request:
+#     host/cservice/SampleServerApi/callWithArgs?callId=1
+# run in command:
+#    python2.7 run.py server
+
 def cloudModule(handleUrl=None, **moduleInfo):
+    # @cloudModule, mark a class as a service see @SampleServerApi
     def __cloudMiddleFun(moduleCls):
         sdriver.addService(moduleCls, handleUrl, moduleInfo)
         return moduleCls
     return __cloudMiddleFun
 
 def cserviceProxy(handleUrl=None):
+    # @cserviceProxy, service proxy handler, route request /api/ to service example:
+# @cserviceProxy(handleUrl="/api")
+# class ApiService(CserviceProxyBase):
+#     pass
+
     def __cserviceMiddleFun(cserviceCls):
         sdriver.addServiceProxy(cserviceCls, handleUrl)
         return cserviceCls

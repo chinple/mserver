@@ -23,7 +23,7 @@ class ApiService(CserviceProxyBase):
     pass
 
 @cloudModule()
-class ServerApi:
+class SampleServerApi:
     def emptyCall(self):
         return "emptyCall"
     def callWithArgs(self, callId, method="post"):

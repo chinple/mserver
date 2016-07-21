@@ -15,7 +15,7 @@ def handleRequest(name, t):
         time.sleep(t)
 
 @model()
-class SampleTestCase(TestCaseBase):
+class QueTestCase(TestCaseBase):
     @scenario()
     def queTest(self):
         qw = QueueRequestWorker(handleRequest, 2)
