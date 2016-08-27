@@ -27,16 +27,10 @@ class __ObjEncoder__(JSONEncoder):
 
 _jsd, _jsn = JSONDecoder(), __ObjEncoder__()
 
-def strTojson(s):
-    return _jsd.decode(s)
-
-def jsonToStr(o):
-    return _jsn.encode(o)
-
 def parseRequestParam(paramStr):
     try:
         try:
-            return strTojson(paramStr)
+            return _jsd.decode(paramStr)
         except:
             reqParam = {}
             for name, value in parse_qsl(urllib.unquote(paramStr)):
@@ -262,13 +256,13 @@ class FolderHandler:
             if os.path.isdir(f):
                 ftype = tryGet(parseRequestParam(reqParam), "type", 0)
                 if ftype == "json":
-                    reqObj.sendResponse(jsonToStr(os.listdir(f)))
+                    reqObj.sendResponse(_jsn.encode(os.listdir(f)))
                 elif ftype == "stat":
                     files = []
                     for a in os.listdir(f):
                         p = "%s/%s" % (f, a)
                         files.append([a, os.path.isdir(p), os.path.getsize(p)])
-                    reqObj.sendResponse(jsonToStr(files))
+                    reqObj.sendResponse(_jsn.encode(files))
                 else:
                     files = []
                     files.append('<a href="{1}/{0}">{0}<a>'.format("..", reqPath))
@@ -449,7 +443,7 @@ class ObjHandler:
             for n in minfo['api']:
                 infoHandler(apiLan, 3, infos, m, n, minfo)
         info = infoHandler(apiLan, 4, infos)
-        return info if isinstance(info, str) else jsonToStr(info)
+        return info if isinstance(info, str) else _jsn.encode(info)
 
     def __callObjFun__(self, reqPath, reqParam):
     # return code, result
@@ -480,7 +474,7 @@ class ObjHandler:
         if reqParam is None:
             reqObj.sendResponse(self._infoObjs(reqPath))
         else:
-            reqObj.sendResponse(jsonToStr(self.__callObjFun__(reqPath, reqParam)))
+            reqObj.sendResponse(_jsn.encode(self.__callObjFun__(reqPath, reqParam)))
 
 class CserviceProxyBase(ObjHandler):
     def __init__(self, objs):

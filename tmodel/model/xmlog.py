@@ -168,5 +168,3 @@ class TestLogger:
         if self.__logFile != None:
             self.__logFile.close()
             self.__logLine = stdout.writelines
-
-

@@ -177,8 +177,3 @@ def jsonToUrlValue(jsonObj):
     urlValues = []
     _jsonToUrlValue(jsonObj, urlValues)
     return "&".join(urlValues)
-
-if __name__ == '__main__':
-    import sys
-    curl("http://chinple-pc0.tencent.com:8089/cservice", logHandler=sys.stdout.writelines,
-         logResp=True, logHeader=True)

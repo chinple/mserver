@@ -32,5 +32,3 @@ class TestViewDriver(BaseDriver):
         pass
     def endModel(self, tcInfo):
         self.coder.endClass(tcInfo)
-        
-    

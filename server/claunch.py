@@ -101,7 +101,6 @@ def createCservice(servicePath, cserviceInfo, cserviceProxy, stubFiles, rHandler
     rHandler.addHandler(servicePath, cservice)
     for cserviceCls, handleUrl in cserviceProxy:
         rHandler.addHandler(handleUrl.lower(), cserviceCls(cservice.objs))
-        
 
 def createRouterHandler(webroot, uploadFolder):
     # file setting

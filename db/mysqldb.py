@@ -8,8 +8,10 @@ from db.sqllib import SqlConnBase
 import MySQLdb
 from _mysql_exceptions import OperationalError, InterfaceError
 
+# rely: mysql-devel setuptools-22.0.0.tar MySQL-python-1.2.5.tar
+
 class MysqldbConn(SqlConnBase):
-    # sqlConfig = {'host':host, 'port':port, 'user':user, 'passwd':passwd, 'db':db, 'charset':'utf8'}
+# sqlConfig = {'host':host, 'port':port, 'user':user, 'passwd':passwd, 'db':db, 'charset':'utf8'}
     def __executeSql__(self, sqlStr, isSelect=True, isFethall=True, isCommit=True, dbName=None):
         try:
             if isSelect:     

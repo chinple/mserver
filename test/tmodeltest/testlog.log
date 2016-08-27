@@ -1,9 +1,22 @@
 
-<TestCase>  [casename] modelView [param] {"letter": "a"} [description] (letter:a)
-  <Result>  [time] 0.0 [casename] modelView [rescode] 0 [result] Passed
+<TestCase>  [casename] sampleFun [param] {} [description] 
+      <Info> [2016-07-25 20:03:59] called
+  <Result>  [time] 0.0 [casename] sampleFun [rescode] 0 [result] Passed
 
-<TestCase>  [casename] modelView1 [param] {"letter": "b"} [description] ([1]letter:b)
-  <Result>  [time] 0.0 [casename] modelView1 [rescode] 0 [result] Passed
+<TestCase>  [casename] sampleTest [param] {"other": "x", "number": "1", "letter": "a"} [description] (letter:a)
+  <Result>  [time] 0.0 [casename] sampleTest [rescode] 0 [result] Passed
 
-<TestCase>  [casename] modelView2 [param] {"letter": "c"} [description] ([2]letter:c)
-  <Result>  [time] 0.0 [casename] modelView2 [rescode] 0 [result] Passed
+<TestCase>  [casename] sampleTest1 [param] {"other": "y", "number": "1", "letter": "a"} [description] ([1]other:y)
+  <Result>  [time] 0.0 [casename] sampleTest1 [rescode] 0 [result] Passed
+
+<TestCase>  [casename] sampleTest2 [param] {"other": "x", "number": "2", "letter": "a"} [description] ([2]number:2)
+  <Result>  [time] 0.0 [casename] sampleTest2 [rescode] 0 [result] Passed
+
+<TestCase>  [casename] sampleTest3 [param] {"other": "x", "number": "3", "letter": "a"} [description] ([3]number:3)
+  <Result>  [time] 0.0 [casename] sampleTest3 [rescode] 0 [result] Passed
+
+<TestCase>  [casename] sampleTest4 [param] {"other": "x", "number": "1", "letter": "b"} [description] ([4]letter:b)
+  <Result>  [time] 0.0 [casename] sampleTest4 [rescode] 0 [result] Passed
+
+<TestCase>  [casename] sampleTest5 [param] {"other": "x", "number": "1", "letter": "c"} [description] ([5]letter:c)
+  <Result>  [time] 0.0 [casename] sampleTest5 [rescode] 0 [result] Passed

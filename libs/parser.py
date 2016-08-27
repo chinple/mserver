@@ -7,14 +7,14 @@ Created on 2010-11-8
 from json.decoder import JSONDecoder
 from json.encoder import JSONEncoder
 
-class __MTestEncoder__(JSONEncoder):
+class __ObjStrEncoder__(JSONEncoder):
     def default(self, obj):
         return str(obj)
 
 class JsonParser:
     def __init__(self):
         self.jsDecoder = JSONDecoder()
-        self.jsEncoder = __MTestEncoder__()
+        self.jsEncoder = __ObjStrEncoder__()
         self.encoding = "utf-8"
 
     def toDict(self, targetStr, isDeepClone=False):

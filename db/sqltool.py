@@ -89,4 +89,3 @@ class SqlOpTool:
             return conn.executeSql(operation, dbName=dbName)
         else:
             return "Bad operation %s" % operation
-

@@ -6,6 +6,13 @@ Created on 2015-10-18
 import os
 
 class IniParser:
+# ini example:
+#
+# [queue]
+# msgMaxQueueSize = 512
+# msgMaxMsgSize   = 200
+# maxTopicSize    = 100
+
     def __init__(self, readLineHandler, addSectionHandler):
         self.nextLineHandle = readLineHandler
         self._stepHandle_ = addSectionHandler
@@ -104,6 +111,3 @@ class IniConfigure:
 
     def getBool(self, section, key, default=None):
         return self.getVal(section, key, default).lower() == "true"
-
-if __name__ == "__main__":
-    print(IniConfigure(r'D:\docs\explore\Python27\mtest\test\inisample.ini').sections)
