@@ -11,7 +11,7 @@ from libs.reg import PyRegExp
 from libs.objop import ObjOperation
 from libs.tvg import TValueGroup
 from libs.ini import IniConfigure
-from tmodel.model.xmlog import TestLoggerFactory, TestLogger
+from tmodel.model.logxml import TestLoggerFactory, TestLogger
 from libs.syslog import logManager, slog
 
 class MTConst:
@@ -113,7 +113,13 @@ class TestCaseFactory:
 
         logManager.removeHandler(slog, 1)
         logManager.addFileHandler(slog, None, "mtest.log")  # set syslog for test
-        self.tlog.registerLogger(TestLogger, logFilePath)
+
+        if str(logFilePath).strip().endswith(".html"):
+            from tmodel.model.logreport import HtmlTestReport
+            self.tlog.registerLogger(HtmlTestReport, logFilePath, False)
+            self.tlog.registerLogger(TestLogger, "testlog.log")
+        else:
+            self.tlog.registerLogger(TestLogger, logFilePath)
 
     def addRunMode(self, modeName, mode):
         self.runModeEnum[modeName] = mode
