@@ -94,7 +94,7 @@ class HtmlTestReport(TestLogger):
     def error(self, log):
         self.testCaseInfo = self.testCaseInfo.replace("{result}", "failTestCase")
         if not self.hasStep:
-            self.Step("Default empty step")
+            self.step("Default empty step")
 
         self.lastStep = self.lastStep.replace("{result}", "fail") + "<br>" + log.replace("\n", "<br>")
 
