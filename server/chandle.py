@@ -55,7 +55,7 @@ class CServerHandler(BaseHTTPRequestHandler):
     webroot = None
     uploadFolder = "."
     rHandler = None  # router handler, set by @createHttpServer
-    maxBodySize = 1048576
+    maxBodySize = 104857600
 
     def __init__(self, *tupleArg, **jsonArg):
         self.server_version = "CSERVER 1.0"
@@ -83,6 +83,12 @@ class CServerHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         self.__handleNoException(True)
 
+    def do_DELETE(self):
+        self.__handleNoException(True)
+
+    def do_PUT(self):
+        self.__handleNoException(True)
+
     def do_GET(self):
         self.__handleNoException(False)
 
@@ -100,7 +106,10 @@ class CServerHandler(BaseHTTPRequestHandler):
             self.sendResponse(ex, None, 555)
 
     def readPostBody(self):
-        bodySize = int(self.headers['Content-Length'])
+        try:
+            bodySize = int(self.headers['Content-Length'])
+        except:# empty body
+            return
         if bodySize > self.maxBodySize:
             raise Exception("Body exceed 1M bytes for: %s" % self.path)
         if bodySize > 0:
