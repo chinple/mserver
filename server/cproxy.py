@@ -15,6 +15,8 @@ class ProxyHttpHandle:
 
     def __init__(self, poolSize=512):
         self.hostIp = {}
+        self.pathIp = {}
+        self.isEnablePath = False
         self.isMock = True
         self.reloadProxyConfig()
         from multiprocessing.pool import ThreadPool
@@ -22,20 +24,29 @@ class ProxyHttpHandle:
 
     class NoHostException(Exception):
         pass
-    def __getProxyInfo__(self, headers, address):
+
+    def __getPathProxy__(self, path):
+        for p in self.pathIp:
+            if path.startswith(p):
+                return self.pathIp[p]
+
+    def __getProxyInfo__(self, headers, address, path):
         ip, port, host = "", 80, ""
         if tryGet(headers, "http-from", None) != self.localHosts:
             try:
-                ip = headers["host"].lower()
-                ps = ip.split(":")
-                if len(ps) == 2:
-                    ip, port = ps[0], int(ps[1])
-                ps = self.hostIp[ip]
+                # get by path
+                ps = self.__getPathProxy__(path) if self.isEnablePath else None
+                if ps is None:# get by host
+                    ip = headers["host"].lower()
+                    ps = ip.split(":")
+                    if len(ps) == 2:
+                        ip, port = ps[0], int(ps[1])
+                    ps = self.hostIp[ip]
                 ip, port, host = ps['ip'], ps['port'], ps['host']
                 if host is None:
                     host = ip
             except:
-                slog.warn("same proxyHost: %s" % ip)
+                slog.warn("Not found proxy: %s \t%s" % (ip, path))
         if ip == "":
             slog.error("No proxy hosts: %s" % headers)
             raise ProxyHttpHandle.NoHostException()
@@ -54,12 +65,13 @@ class ProxyHttpHandle:
         return pHeaders
 
     def __sendProxyRequest(self, reqObj, bbody):
-        ip, port, host = self.__getProxyInfo__(reqObj.headers, reqObj.client_address)
+        p = reqObj.path
+        ip, port, host = self.__getProxyInfo__(reqObj.headers, reqObj.client_address, p)
 
         httpServ = HTTPConnection(ip, port)
         httpServ.connect()
         reqHeader = self.__getProxyHeader(reqObj.headers, host)
-        httpServ.request(reqObj.command, reqObj.path, bbody, reqHeader)
+        httpServ.request(reqObj.command, p, bbody, reqHeader)
         return reqHeader, httpServ.getresponse()
 
     def __sendResponse(self, reqObj , status, respHeader, body):
@@ -100,7 +112,7 @@ class ProxyHttpHandle:
         finally:
             respTime = time.time() - respTime - reqTime
             self.logPool.apply_async(self.__analyzeSession__,
-                args=(isMock, isPost, reqPath, reqParam, respBody, reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader))
+                args=(isMock, reqObj.command, reqPath, reqParam, respBody, reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader))
 
     def setMock(self, isMock=""):
         if isMock != "":
@@ -137,19 +149,27 @@ class ProxyHttpHandle:
                 if host == None or host == "":
                     host = toHost
                 slog.info("%s\t\t= %s  %s%s" % (host, toIp, toHost, "" if toPort == 80 else (":%s" % toPort)))
-                self.hostIp[host.lower()] = {"ip":toIp, "port":toPort, 'host':toHost}
+                self.__addProxy(host, toIp, toPort, toHost)
         return self.hostIp
 
-    def __getSimpleSession__(self, isLogResp, isMock, isPost,
+    def __addProxy(self, host, toIp, toPort, toHost):
+        h = host.lower()
+        if h[0] == "/":
+            self.pathIp[h] = {"ip":toIp, "port":toPort, 'host':toHost}
+            self.isEnablePath = True
+        else:
+            self.hostIp[h] = {"ip":toIp, "port":toPort, 'host':toHost}
+
+    def __getSimpleSession__(self, isLogResp, isMock, command,
                 reqPath, reqParam, respBody, reqTime, respTime, respStatus,
             reqAddress, reqHeader, respHeader):
         host, ip , resp = reqHeader['host'], reqAddress[0], (decodeHttpBody(respHeader, respBody) if isLogResp else "...")
-        return "%s %s %s%s%s\n\t%s\n==>[%.3f, %.3f] %s\n" % (ip, "POST" if isPost else "GET", "MOCK " if isMock else "",
+        return "%s %s %s%s%s\n\t%s\n==>[%.3f, %.3f] %s\n" % (ip, command, "MOCK " if isMock else "",
             host, reqPath, reqParam, reqTime, respTime, resp)
 
-    def __analyzeSession__(self, isMock, isPost, reqPath, reqParam, respBody, reqTime, respTime, respStatus,
+    def __analyzeSession__(self, isMock, command, reqPath, reqParam, respBody, reqTime, respTime, respStatus,
             reqAddress, reqHeader, respHeader):
-        slog.info(self.__getSimpleSession__(True, isMock, isPost, reqPath, reqParam, respBody, reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader))
+        slog.info(self.__getSimpleSession__(True, isMock, command, reqPath, reqParam, respBody, reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader))
 
     def __isMockRquest__(self, reqPath, reqParam, reqHeader, reqAddress):
         return False
@@ -163,7 +183,8 @@ class LogHttpHandle(ProxyHttpHandle):
 [proxyLog]
 logFolder  = .
 fromIps    =  127.0.0.1,127.0.0.2
-logReqPaths = /ajax,/interface
+pathStartswith = /ajax,/interface
+pathEndswith   = 
     '''
     def __init__(self):
         ProxyHttpHandle.__init__(self)
