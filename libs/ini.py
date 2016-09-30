@@ -33,7 +33,8 @@ class IniParser:
             self._initSection_()
     def _addEle_(self):
         if self.eleName:
-            self.sectionValues.append((self.eleName, self.eleValue.strip()))
+            v = self.eleValue.strip()
+            self.sectionValues.append((self.eleName, v[1:] if v.startswith("\\ ") else v))
             self._initEle_()
     def parse(self):
         while True:
