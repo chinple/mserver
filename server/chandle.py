@@ -55,6 +55,9 @@ class CServerHandler(BaseHTTPRequestHandler):
     webroot = None
     uploadFolder = "."
     rHandler = None  # router handler, set by @createHttpServer
+    sessionCookie = None
+    session = None
+    redirectPath = None
     maxBodySize = 104857600
 
     def __init__(self, *tupleArg, **jsonArg):
@@ -108,7 +111,7 @@ class CServerHandler(BaseHTTPRequestHandler):
     def readPostBody(self):
         try:
             bodySize = int(self.headers['Content-Length'])
-        except:# empty body
+        except:  # empty body
             return
         if bodySize > self.maxBodySize:
             raise Exception("Body exceed 1M bytes for: %s" % self.path)
@@ -129,6 +132,12 @@ class CServerHandler(BaseHTTPRequestHandler):
     def sendSimpleHeaders(self, respCode, contentType, contentLength):
 
         self.sendHeaderCode(respCode)
+        if self.sessionCookie is not None:
+            self.send_header("Set-Cookie", self.sessionCookie)
+            self.sessionCookie = None
+        if self.redirectPath is not None:
+            self.send_header("Location", self.redirectPath)
+            self.redirectPath = None
         self.send_header("Content-Type", "text/plain" if contentType is None else contentType)
         self.send_header("Content-Length", contentLength)
         self.end_headers()
@@ -211,6 +220,28 @@ class RouterHandler:
             h2, reqPath = self.getHandler(redirect)
             if h2 != h:
                 h2.__handleRequest__(reqObj, reqPath, reqParam, isPost)
+
+class SessionHandlerBase:
+    def __isNotInSession__(self, reqObj, reqPath, reqParam, isPost):
+        pass
+
+class SessionRouterHandler(RouterHandler):
+    def __init__(self, defHandler):
+        RouterHandler.__init__(self, defHandler)
+        self.sessionHandler = None
+
+    def addHandler(self, preUrl, handle):
+        if isinstance(handle, SessionHandlerBase):
+            self.sessionHandler = handle
+            self.sessionHandler.sessionUrl = preUrl
+            return
+        return RouterHandler.addHandler(self, preUrl, handle)
+
+    def __handleRequest__(self, reqObj, reqPath, reqParam, isPost):
+        if self.sessionHandler is not None:
+            if self.sessionHandler.__isNotInSession__(reqObj, reqPath, reqParam, isPost):
+                return
+        return RouterHandler.__handleRequest__(self, reqObj, reqPath, reqParam, isPost)
 
 class FileHandler:
     def __init__(self):
@@ -454,7 +485,7 @@ class ObjHandler:
         info = infoHandler(apiLan, 4, infos)
         return info if isinstance(info, str) else _jsn.encode(info)
 
-    def __callObjFun__(self, reqPath, reqParam):
+    def __callObjFun__(self, reqPath, reqParam, session):
     # return code, result
         try:
             apiModule, apiName = reqPath[1:].split("/")
@@ -468,11 +499,17 @@ class ObjHandler:
             return 2, "No module"
 
         try:
-            if len(minfo['api'][apiName]) == 0:
+            args = minfo['api'][apiName]
+            if len(args) == 0:
                 r = api()
             else:
                 param = parseRequestParam(reqParam)
-                r = api(**param)
+                if session is None:
+                    r = api(**param)
+                else:
+                    if args.__contains__('session'):
+                        param['session'] = session
+                    r = api(**param)
             return 0, r
         except Exception as ex:
             return 3, str(ex)
@@ -483,11 +520,12 @@ class ObjHandler:
         if reqParam is None:
             reqObj.sendResponse(self._infoObjs(reqPath))
         else:
-            reqObj.sendResponse(_jsn.encode(self.__callObjFun__(reqPath, reqParam)))
+            reqObj.sendResponse(_jsn.encode(self.__callObjFun__(reqPath, reqParam, reqObj.session)))
 
 class CserviceProxyBase(ObjHandler):
     def __init__(self, objs):
         self.objs = objs
 
-    def __callObjFun__(self, reqPath, reqParam):
-        return ObjHandler.__callObjFun__(self, reqPath, reqParam)
+    def __callObjFun__(self, reqPath, reqParam, session):
+        return ObjHandler.__callObjFun__(self, reqPath, reqParam, session)
+

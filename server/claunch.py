@@ -5,7 +5,7 @@ Created on 2012-3-21
 '''
 
 from server.chandle import RouterHandler, FileHandler, FolderHandler, \
-    CServerHandler, FileUploadHandler, ObjHandler
+    CServerHandler, FileUploadHandler, ObjHandler, SessionRouterHandler
 import os
 from libs.syslog import slog
 import time
@@ -104,7 +104,10 @@ def createCservice(servicePath, cserviceInfo, cserviceProxy, stubFiles, rHandler
 
 def createRouterHandler(webroot, uploadFolder):
     # file setting
-    rHandler = RouterHandler(FileHandler())
+    if True:
+        rHandler = SessionRouterHandler(FileHandler())
+    else:
+        rHandler = RouterHandler(FileHandler())
     if os.path.exists(webroot):
         rHandler.addHandler("__file__", rHandler.defHandler)
         rHandler.addHandler("file", FolderHandler())
