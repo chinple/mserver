@@ -13,7 +13,7 @@ class LocalSessionContainer:
         self.expireTime = expireTime
         self.sessionContainers = {}
         
-    def getsessionById(self, sessionid):
+    def getSessionById(self, sessionid):
         session = self.sessionContainers[sessionid]
         if time.time() - session['t'] >= self.expireTime:
             self.sessionContainers.__delitem__(sessionid)
@@ -94,7 +94,7 @@ class LocalMemSessionHandler(SessionHandlerBase):
         return True
 
     def _authSession(self, sessionid, reqObj, reqPath, reqParam):
-        session = self.lsc.getsessionById(sessionid)
+        session = self.lsc.getSessionById(sessionid)
         reqObj.session = session
         if session is None:
             return False
