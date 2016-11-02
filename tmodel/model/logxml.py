@@ -20,8 +20,7 @@ class TestLoggerFactory(object):
                 logger.init(logFilePath, isXmlLog, xsl, lineEnd)
 
     def registerLogger(self, logCls, logFilePath="", isXmlLog=False):
-        logger = logCls()
-        logger.init(logFilePath, isXmlLog)
+        logger = logCls(logFilePath, isXmlLog)
         self._loggers.append(logger)
 
     def getLoggerPath(self):
