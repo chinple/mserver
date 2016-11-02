@@ -45,18 +45,16 @@ class TestLoader:
         self.curDir = mtArgs.dir
         self.propConf = mtArgs.prop
 
-        self.chost = mtArgs.chost
-        self.cport = mtArgs.cport
+#        self.chost = mtArgs.chost
+#        self.cport = mtArgs.cport
 
         self.smtp = mtArgs.smtp
         self.sender = mtArgs.sender
         self.receiver = mtArgs.receiver
+        self.smtpLogin = mtArgs.smtpLogin
 
-        self.login = mtArgs.login
-    
-        self.ftpserver = mtArgs.ftpserver
-        self.httpserver = mtArgs.httpserver
         self.product = mtArgs.product
+        self.version = mtArgs.version
         self.environment = mtArgs.environment
 
         self.fileList = mtArgs.file
@@ -68,9 +66,18 @@ class TestLoader:
             driver = TestViewDriver(self.driver)
 
         driver.initDriver(**self.__dict__)
-        driver.runDriver(*self.__loadModels())
+        runInfo = driver.runDriver(*self.__loadModels())
         driver.endDriver()
-    
+        if isinstance(runInfo, dict):
+            self.report(runInfo)
+
+    def report(self, runInfo):
+        from tmodel.runner.logsummary import SummaryReport
+        sr = SummaryReport()
+        sr.analyzeLogs(self.product, self.version, self.environment, runInfo)
+        if self.smtp.strip() != "":
+            sr.sendEmail(self.smtp, self.smtpLogin, self.sender, self.receiver)
+
     def __loadModels(self):
         return DynamicLoader.getClassFromFile("ModelDecorator", self.ignoreImportExcept, *self.fileList)
 
@@ -115,16 +122,13 @@ Example:
     ("code", "codeFile"), ("graph", "graphPath"),
     ("base", "baseClass", "TestCaseBase"),
     ("namespace", "namespace", "mtestGeneratedCode"),
-
-    ("chost", "ServerHost"),
-    ("cport", "ServerPort", 80, "int"),
     
-    ("smtp", "smtpAddress, such as mail.aliyun.com:465"),
+    ("smtp", "smtpAddress, such as mail.163.com:465"),
     ("sender", "mail sender"),
-    ("receiver", "receiver: report mail receiver", [], "list"),
-    
-    ("login", "account and password, such as /login:ftp=account,password;smtp=account,password;"),
-    ("ftpserver", "ftpserver, such as ftp://hostname/ftpPath/"),
-    ("httpserver", "httpserver, such as http://hostname/Logs/ftpPath/"),
-    ("product", "product information, such as version 1.0"),
+    ("receiver", "mail receiver, such as a@qq.com;b@163.com"),
+    ("smtpLogin", "such as:account/password, base64encoding"),
+    ("logServer", "log server of ctool"),
+
+    ("product", "product information, such as product 1.0"),
+    ("version", "product version, such as version 1.0"),
     ("environment", "environment, test environment information"))
