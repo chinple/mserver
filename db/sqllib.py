@@ -110,7 +110,7 @@ class Sql:
         return self.connFactory.executeSql(sqlStr, self.opType == Sql.select, isFethall, isCommit)
 
     def __str__(self):  # TODO SQL inject
-        _cond = ("%s"*len(self.where)) % tuple(self.where)
+        _cond = " ".join(self.where)
         _sql = ""
         if _cond != "":
             _cond = "WHERE " + _cond
@@ -119,15 +119,15 @@ class Sql:
             _sql = "SELECT %s FROM %s %s %s" % (self.fieldDesp, self.opTable, _cond, ("limit %s" % self.limit) if self.limit != None else "")
         elif self.opType == Sql.insert:
             _sql = "INSERT INTO %s(%s) VALUES(%s)" % (self.opTable,
-                ((", %s"*len(self.names)) % tuple(self.names))[1:], ((", '%s'"*len(self.values)) % tuple(self.values))[1:])
+                ((", %s" * len(self.names)) % tuple(self.names))[1:], ((", '%s'" * len(self.values)) % tuple(self.values))[1:])
         elif self.opType == Sql.update:
-            setSql = (", %s ='%%s'"*len(self.names)) % tuple(self.names)
+            setSql = (", %s ='%%s'" * len(self.names)) % tuple(self.names)
             _sql = "UPDATE %s SET %s %s" % (self.opTable, setSql[1:] % tuple(self.values), _cond)
         elif self.opType == Sql.delete:
             _sql = "DELETE FROM %s %s" % (self.opTable, _cond)
         elif self.opType == Sql.replace:
             _sql = "REPLACE INTO %s(%s) VALUES%s" % (self.opTable,
-                ((", %s"*len(self.names)) % tuple(self.names))[1:], tuple(self.values))
+                ((", %s" * len(self.names)) % tuple(self.names))[1:], tuple(self.values))
         return _sql
 
     def appendWhere(self, name, val, cond="=", isAnd=True, isRemoveEmpty=True, isYesCond=True):
@@ -136,7 +136,7 @@ class Sql:
                 return self
             isInCond, tv = cond == 'in', type(val)
             if isInCond:
-                if tv == str:
+                if tv == str or tv == unicode:
                     val = tuple(val.split(','))
                 cond = 'in'
                 if len(val) == 0:
@@ -144,10 +144,10 @@ class Sql:
                 elif len(val) == 1:
                     isInCond, cond, val = False, "=", val[0]
                 else:
-                    val = str(tuple(val)).replace("u'", "'")
+                    val = '(%s)' % (((", '%s'" * len(val)) % val)[1:])
 
-            if len(self.where) > 1:
-                self.where.append(" and " if isAnd else " or ")
+            if len(self.where) > 0:
+                self.where.append("and" if isAnd else "or")
             self.where.append("%s %s %s " % ("" if isYesCond else " not", name, cond))
             if isInCond or tv == int:
                 self.where.append("%s" % str(val))
@@ -174,12 +174,14 @@ class Sql:
     def endSubCondition(self, isAnd=True):
         if self.subCondStart >= 0:
             if len(self.where) > self.subCondStart:
-                self.where[self.subCondStart] = ("(" + self.where[self.subCondStart]) if self.subCondStart == 0 else (" and " if isAnd else " or ") + "("
+                self.where[self.subCondStart] = "(" + self.where[self.subCondStart]
                 self.where.append(" ) ")
             self.subCondStart = -1
 
-    def appendCondition(self, cond):
-        if cond != None:
+    def appendCondition(self, cond, isAnd=True):
+        if cond is not None:
+            if len(self.where) > 0:
+                self.where.append("and" if isAnd else "or")
             self.where.append(cond)
         return self
 
