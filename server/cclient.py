@@ -92,7 +92,7 @@ class HttpClient:
             resp = "AsyncRequest: %s" % response.status
 
         self.__logResponse__(resp)
-        if response.status != OK:
+        if int(response.status / 100) != 2:
             raise RequstException("Fail(%s) to request %s%s: %s" % (response.status, self.hostport, path, resp))
         return resp
 
@@ -132,7 +132,10 @@ def curl(url, body=None, isReadResp=True, logHandler=None, logHeader=False, logR
         client.setLogInfo(logHandler, logHeader, logResp)
     if command is None:
         command = "GET" if body is None else "POST"
-    return client.sendRequest(path, body, command, isReadResp, headers)
+    try:
+        return client.sendRequest(path, body, command, isReadResp, headers)
+    finally:
+        client.close()
 
 def curlCservice(hosts, infPath, isGetInfo=False, isCheckResp=False, logHandler=None, curlHeader={}, **args):
     from libs.parser import toJsonStr, toJsonObj
