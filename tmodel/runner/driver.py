@@ -77,7 +77,7 @@ class TestDriver:
                 self.endModelHandler(tcInfo)
 
         self.tlog.close()
-        self.tc.report()
+        return self.tc.report()
 
     def addModelCls(self, modelClass, testModule, testName, imports, testOrder, searchKey):
         tcInfo = self.tc.getTCInfo(modelClass.__name__)
