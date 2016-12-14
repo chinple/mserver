@@ -90,3 +90,28 @@ class IniConfigure:
             return True
         return False
 
+    def __addSection(self, sectionName, sectionValues):
+        try:
+            section = self.sections[sectionName]
+        except:
+            section = {}
+            self.sections[sectionName] = section
+        for v in sectionValues:
+            section[v[0]] = v[1]
+
+    def getVal(self, section, key, default=None):
+        try:
+            return self.sections[section][key]
+        except:
+            if default is not None:
+                return default
+        raise IniConfigure.NoConfigException("%s.%s" % (section, key))
+
+    def getInt(self, section, key, default=None):
+        return int(self.getVal(section, key, default))
+
+    def getFloat(self, section, key, default=None):
+        return float(self.getVal(section, key, default))
+
+    def getBool(self, section, key, default=None):
+        return self.getVal(section, key, default).lower() == "true"
