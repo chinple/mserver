@@ -37,7 +37,8 @@ class TestDriver:
 
     def initDriver(self, runMode, testrunConfig, logFilePath, isXmlLog,
             tcPattern, outTcPattern, searchKey, propConf, **extConf):
-        self.tc.init(runMode, tcPattern, outTcPattern, searchKey, logFilePath)
+        self.tc.init(runMode, testrunConfig, logFilePath, isXmlLog,
+            tcPattern, outTcPattern, searchKey, propConf)
 
     def endDriver(self):
         pass
@@ -84,24 +85,24 @@ class TestDriver:
         for caseFun in dir(modelClass):
             if not MTConst.sysFunReg.isMatch(caseFun):
                 testCaseInfo = TValueGroup({})
-                testCaseInfo.Name = caseFun
+                testCaseInfo.name = caseFun
                 tcInfo[caseFun] = {}
-        tcInfo.Module = testModule
-        tcInfo.Name = testName if testName != None else modelClass.__name__
-        tcInfo.Imports = imports
-        tcInfo.Orders = testOrder
-        tcInfo.SearchKey = searchKey
+        tcInfo.module = testModule
+        tcInfo.name = testName if testName != None else modelClass.__name__
+        tcInfo.imports = imports
+        tcInfo.orders = testOrder
+        tcInfo.searchKey = searchKey
 
     def runScenario(self, tcObj, tcFun, caseName, param, where, group, status, despFormat, searchKey):  # Status is for status modeling
         isInfoExcept = self.tc.isInMode("debug")
 
         clsName = tcObj.__class__.__name__
         tcInfo = self.tc.getTCInfo(clsName)
-        tsInfo = tcInfo.__getitem__(caseName)
-        tcKey = tcInfo.SearchKey
-        for sKey in tcKey:
+        tsInfo = tcInfo[caseName]
+        for sKey in tcInfo.searchKey:
             if not searchKey.__contains__(sKey):
-                searchKey[sKey] = tcKey[sKey]
+                searchKey[sKey] = tcInfo.searchKey[sKey]
+
         if status != None:
             from tmodel.model.statusmodel import TestModeling
             self.tc.isModeling = True
@@ -132,7 +133,7 @@ class TestDriver:
             if sparam is None:
                 break
             desp = self.tc.getTCDespcription(sparam, despFormat)
-            caseInfo = {'d':desp, 'r':MTConst.notRun, 't':0}
+            caseInfo = {'d':desp, 'r':MTConst.notRun, 't':0, 'k':searchKey}
             tsInfo[sparam.pIndex] = caseInfo
 
             caseFullName = self.tc.getTCFullName(caseName, sparam.pIndex, desp)
