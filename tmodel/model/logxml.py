@@ -23,6 +23,11 @@ class TestLoggerFactory(object):
         logger = logCls(logFilePath, isXmlLog)
         self._loggers.append(logger)
 
+    def clearLogger(self):
+        while len(self._loggers) > 0:
+            self._loggers[0].close()
+            self._loggers.__delitem__(0)
+
     def getLoggerPath(self):
         logFiles = ""
         for logger in self._loggers:
@@ -89,7 +94,7 @@ class TestLogger:
         self.__errorLine = stderr.writelines
         tempTypeStr = logFilePath.__class__.__name__
         if tempTypeStr == 'str' or tempTypeStr == 'unicode':
-            if len(logFilePath) > 0:
+            if len(logFilePath) > 0 and logFilePath.__contains__("."):
                 self.__logFile = codecs.open(logFilePath, "a" if isAppend else "w", "utf-8", buffering=0)
                 self.__logLine = self.__logFile.writelines
                 self.__errorLine = self.__logLine
@@ -152,12 +157,12 @@ class TestLogger:
         self.__log(3, "Error", log)
 
     def infoText(self, formator, *args):
-        if formator != None:
+        if formator is not None:
             self.__logLine(formator % args if len(args) > 0 else formator)
             self.__logLine(self.__end)
 
     def warnText(self, formator, *args):
-        if formator != None:
+        if formator is not None:
             self.__errorLine(formator % args if len(args) > 0 else formator)
             self.__errorLine(self.__end)
 
