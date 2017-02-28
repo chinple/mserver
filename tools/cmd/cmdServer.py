@@ -26,4 +26,5 @@ class CmdServerhandler(BaseHTTPRequestHandler):
             self.close_connection = 1
 
 if __name__ == "__main__":
+    # usage nohup python cmdserver.py 8083 &
     BaseHTTPServer.test(CmdServerhandler, BaseHTTPServer.HTTPServer)
