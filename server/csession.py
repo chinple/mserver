@@ -54,12 +54,17 @@ class LocalMemSessionHandler(SessionHandlerBase):
         self.lsc = LocalSessionContainer()
         self.isReuseCookie = True
         self.sessionName = 'cserverid'
-        self.ignorePath = ['/cservice/js']
+        self.ignorePath = []
         self.redirectPath = None
     
-    def __ignoreMethod__(self, methodName):
-        self.ignorePath.append('/cservice/%s/%s' % (self.__class__.__name__, methodName))
-    
+    def __ignoreMethods__(self, *methodName):
+        for m in methodName:
+            self.ignorePath.append('/cservice/%s/%s' % (self.__class__.__name__, m))
+
+    def __ignorePaths__(self, *path):
+        for p in path:
+            self.ignorePath.append(p)
+
     def __isNotInSession__(self, reqObj, reqPath, reqParam, isPost):
         # true need close the request
         cookie = reqObj.headers.getheader('Cookie', None)
@@ -111,7 +116,7 @@ class LocalMemSessionHandler(SessionHandlerBase):
     
     def __handleUnauthStatus__(self, session, reqObj, reqPath, reqParam):
         if self.redirectPath:
-            reqObj.redirectPath = self.redirectPath
+            reqObj.redirectPath = self.redirectPath + "?path=" + reqObj.path
             reqObj.sendResponse("", None, 302)
         else:
             reqObj.sendResponse("UnAuthorized", None, 500)
