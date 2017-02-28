@@ -62,7 +62,8 @@ def testing(*args):
     elif len(args) == 1:
         from libs.objop import StrOperation
         args = ["-f", sys.argv[0]] + list(StrOperation.splitStr(args[0], " ", '"'))
-    TestLoader(driver, list(args)).launch()
+    tcode = TestLoader(driver, list(args)).launch()
+    sys.exit(0 if tcode is None else tcode)
 
 class TestCaseBase(object):
     # test case base class, test executing order:
