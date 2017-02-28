@@ -6,7 +6,6 @@ Created on 2010-9-28
 '''
 import os
 import time
-import re
 from libs.reg import PyRegExp
 from libs.objop import ObjOperation
 from libs.tvg import TValueGroup
@@ -15,7 +14,7 @@ from tmodel.model.logxml import TestLoggerFactory, TestLogger
 from libs.syslog import logManager, slog
 
 class MTConst:
-    beginTestCaseInfo = "\t%s Running ..."
+    beginTestCaseInfo = "\n\t%s Running ..."
     endTestCaseInfo = "%s:\t%s"
 
     equalInfo = "Assert %sEqual, in fact %sEqual: Expected \"%s\", Actual \"%s\" for \"%s\""
@@ -97,35 +96,48 @@ class TestCaseFactory:
         self.tlog = TestLoggerFactory()
         self.tprop = IniConfigure()
         self.tassert = TestAssert(self.tlog)
-        self.tcInfos = TValueGroup({})
+        self.tcInfos = {}
         self.startTime = time.time()
         self.init()
         
-    def init(self, runMode="debug", testrunConfig="", logFilePath="", isXmlLog=False,
+    def init(self, runMode="debug", testrunConfig="", logFilePath="",
             tcPattern=None, outTcPattern=None, searchKey=None, propConf={}):
-        try:
-            self.runMode = self.runModeEnum[runMode]
-        except:
-            self.runMode = self.runModeEnum['debug']
-        
+
         if not self.tprop.load(testrunConfig):
             if testrunConfig != "":
                 slog.warn("Not found testrunConfig: %s" % testrunConfig)
 
-        self.searchKey = searchKey
-        self.tcReg = PyRegExp(tcPattern) if tcPattern != None and tcPattern != "" else None
-        self.tcRegOutScope = PyRegExp(outTcPattern) if outTcPattern != None and outTcPattern != "" else None
         self.isModeling = False
 
+        self.setRunCase(tcPattern, outTcPattern, searchKey, runMode)
+        self.setRunLog(logFilePath)
+
+    def setRunLog(self, logs):
         logManager.removeHandler(slog, 1)
         logManager.addFileHandler(slog, None, "mtest.log")  # set syslog for test
+        
+        self.tlog.clearLogger()
+        if len(logs) == 0:
+            logs = ['console']
+        for l in logs:
+            if l.endswith(".html"):
+                from tmodel.model.logreport import HtmlTestReport
+                self.tlog.registerLogger(HtmlTestReport, l, False)
+            else:
+                self.tlog.registerLogger(TestLogger, l, l.endswith(".xml"))
 
-        if str(logFilePath).strip().endswith(".html"):
-            from tmodel.model.logreport import HtmlTestReport
-            self.tlog.registerLogger(HtmlTestReport, logFilePath, False)
-            self.tlog.registerLogger(TestLogger, "testlog.log")
-        else:
-            self.tlog.registerLogger(TestLogger, logFilePath)
+    def setRunCase(self, tcPattern=None, outTcPattern=None, searchKey=None, runMode=None, isclearresult=False):
+        self.tcReg = PyRegExp(tcPattern) if tcPattern != None and tcPattern != "" else None
+        self.tcRegOutScope = PyRegExp(outTcPattern) if outTcPattern != None and outTcPattern != "" else None
+        self.searchKey = None if searchKey is None or searchKey == "" else searchKey.replace(",", " ").split()
+        
+        if runMode is not None:
+            try:
+                self.runMode = self.runModeEnum[runMode]
+            except:
+                self.runMode = self.runModeEnum['debug']
+        if isclearresult:
+            self.tcInfos.clear()
 
     def addRunMode(self, modeName, mode):
         self.runModeEnum[modeName] = mode
@@ -153,18 +165,16 @@ class TestCaseFactory:
             return False
 
     def isInScope(self, csName, searchKeys=None):
-        if self.searchKey != None and self.searchKey != "":
-            if searchKeys == None:
+        if self.searchKey is not None:
+            if searchKeys is None:
                 return False
-            isNotMatch = True
-            for searchVal in searchKeys.values():
-                if re.match(self.searchKey, searchVal) != None:
-                    isNotMatch = False
-                    break
-            if isNotMatch:
-                return False
-        return (self.tcReg == None or self.tcReg.isMatch(csName)) and \
-            (self.tcRegOutScope == None or not self.tcRegOutScope.isMatch(csName))
+            v = searchKeys.values()
+            for k in self.searchKey:
+                if not v.__contains__(k):
+                    return False
+
+        return (self.tcReg is None or self.tcReg.isMatch(csName)) and \
+            (self.tcRegOutScope is None or not self.tcRegOutScope.isMatch(csName))
 
     def addResultType(self, resType, resInfo):
         while resType > 3:
@@ -204,6 +214,14 @@ class TestCaseFactory:
     def getTCFullName(self, tcName, pIndex, desp):
         return "%s%s %s" % (tcName, pIndex if pIndex > 0 else "", desp)
 
+    def getCaseInfo(self, tsInfo, pIndex, desp, searchKey):
+        if tsInfo.__contains__(pIndex):
+            return tsInfo[pIndex]
+
+        caseInfo = {'d':desp, 'r':MTConst.notRun, 't':0, 'k':searchKey}
+        tsInfo[pIndex] = caseInfo
+        return caseInfo
+
     def getRunInfo(self, tcName, tempObj):
         tcInfo = self.getTCInfo(tcName)
         runList = []
@@ -234,6 +252,15 @@ class TestCaseFactory:
                         runList.remove(caseName)
                 runList = orderList + runList
         return (tcInfo, runList)
+
+    def mergeResult(self, tcInfos, tstatuses):
+        for tsName in tcInfos.keys():
+            atcInfo, tcInfo = tcInfos[tsName], self.tcInfos[tsName]
+            for tcName in atcInfo.keys():
+                atcResMap, tcResMap = atcInfo[tcName], tcInfo[tcName]
+                for tpIndex in atcResMap.keys():
+                    if tstatuses.__contains__(atcResMap[tpIndex]['r']):
+                        tcResMap[tpIndex] = atcResMap[tpIndex]
 
     def report(self, repHandler=slog.info, sumTitle='Test Summary:'):
         repRes = self.reportResult()
