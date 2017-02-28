@@ -28,7 +28,7 @@ class CodeFactory:
         
         self.viewer.resetTestInfo(caseName, pIndex, sparam, tcInfo, searchKey)
 
-        className = self.viewer.testClassNamedView(tcInfo.Name)
+        className = self.viewer.testClassNamedView(tcInfo.name)
         if not self.isCurClsName(className):
             classMeta = self.viewer.testClassMetaView()
     
@@ -104,7 +104,7 @@ class CodeFactory:
         self.funs[funName] = (funReturn, metaInfo, funImpls)
 
     def printCode(self):
-        from tmodel.model.xmlog import TestLogger
+        from tmodel.model.logxml import TestLogger
         coder = TestLogger(self.filePath)
         if self.nameSpace != "":
             coder.infoText(self.nameSpaceLan, self.nameSpace)
@@ -137,7 +137,7 @@ class ViewBase:
         self.pIndex = pIndex
         self.param = param
         self.tcInfo = tcInfo
-        self.testModule = tcInfo.Module
+        self.testModule = tcInfo.module
         self.searchKey = searchKey
 
     def testClassMetaView(self):
