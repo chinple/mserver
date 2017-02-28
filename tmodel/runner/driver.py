@@ -10,7 +10,6 @@ import copy
 import time
 from tmodel.model.casemodel import MTConst, TestCaseFactory
 from tmodel.model.paramgen import CombineGroupParam
-from libs.tvg import TValueGroup
 from libs.syslog import slog
 
 class BaseDriver:
@@ -29,22 +28,47 @@ class TestDriver:
         self.tlog = self.tc.tlog
         self.tassert = self.tc.tassert
         self.setDriver()
-    
+
     def setDriver(self, endTestHandler=None, endScenarioHandler=None, endModelHandler=None):
         self.endTestHandler = endTestHandler
         self.endScenarioHandler = endScenarioHandler
         self.endModelHandler = endModelHandler
 
-    def initDriver(self, runMode, testrunConfig, logFilePath, isXmlLog,
-            tcPattern, outTcPattern, searchKey, propConf, **extConf):
-        self.tc.init(runMode, testrunConfig, logFilePath, isXmlLog,
+    def initDriver(self, runMode, testrunConfig, logFilePath,
+            tcPattern, outTcPattern, propConf, pergroup, rungroup, isbyname, **extConf):
+        searchKey = rungroup[0] if len(rungroup) == 1 else None
+        self.groupArgs = tcPattern, outTcPattern, searchKey, pergroup, rungroup, isbyname
+        self.logFilePath = logFilePath
+        self.tc.init(runMode, testrunConfig, logFilePath,
             tcPattern, outTcPattern, searchKey, propConf)
 
     def endDriver(self):
         pass
 
     def runDriver(self, *modelTypes):
-        slog.info(time.strftime("%Y-%m-%d %H:%M:%S testing...\n"))
+        gd = GroupTestDriver(self)
+        groups = gd.getRunGroups(modelTypes, *self.groupArgs)
+        if len(groups) == 0:
+            del gd, groups
+            return self._rerunDriver(*modelTypes)
+        else:
+            return groups
+
+    def groupRunDriver(self):
+        pass
+
+    def _rerunDriver(self, *modelTypes):
+        runinfo = self.__runCases__(*modelTypes)
+        if self.tc.isInMode("rerun", 1) and runinfo[MTConst.failed] > 0:
+            reruncases = " |".join([cn.split(" ")[0] for cn in runinfo['cases'][MTConst.failed].keys()])
+            slog.info("\nRerun %s cases: %s" % (runinfo[MTConst.failed], reruncases))
+            self.tc.setRunCase(reruncases)
+            self.tc.setRunLog(None if self.logFilePath == "" else ("%s.rerun" % self.logFilePath))
+            runinfo = self.__runCases__(*modelTypes)
+        return runinfo
+
+    def __runCases__(self, *modelTypes):
+        slog.info(time.strftime("%Y-%m-%d %H:%M:%S testing..."))
         for modelType in modelTypes:
             if self.tc.isInMode("run", 1):
                 try:
@@ -84,9 +108,8 @@ class TestDriver:
         tcInfo = self.tc.getTCInfo(modelClass.__name__)
         for caseFun in dir(modelClass):
             if not MTConst.sysFunReg.isMatch(caseFun):
-                testCaseInfo = TValueGroup({})
-                testCaseInfo.name = caseFun
-                tcInfo[caseFun] = {}
+                if not tcInfo.__contains__(caseFun):
+                    tcInfo[caseFun] = {}
         tcInfo.module = testModule
         tcInfo.name = testName if testName != None else modelClass.__name__
         tcInfo.imports = imports
@@ -132,11 +155,11 @@ class TestDriver:
 
             if sparam is None:
                 break
-            desp = self.tc.getTCDespcription(sparam, despFormat)
-            caseInfo = {'d':desp, 'r':MTConst.notRun, 't':0, 'k':searchKey}
-            tsInfo[sparam.pIndex] = caseInfo
 
+            desp = self.tc.getTCDespcription(sparam, despFormat)
+            caseInfo = self.tc.getCaseInfo(tsInfo, sparam.pIndex, desp, searchKey)
             caseFullName = self.tc.getTCFullName(caseName, sparam.pIndex, desp)
+
             if not self.tc.isInScope(caseFullName, searchKey):
                 continue
 
@@ -156,7 +179,7 @@ class TestDriver:
             self.tassert.isWarned = False
             tcObj.param = sparam
             caseSimpleName = caseFullName.split(" ")[0]
-            
+
             slog.info(MTConst.beginTestCaseInfo, caseFullName)
             self.tlog.beginTestCase(clsName, caseSimpleName, desp, sparam, searchKey)
 
@@ -233,3 +256,57 @@ class TestDriver:
                 tbInfo += '  File "%s", line %s, in %s\r\n' % (filename, tb.tb_lineno, co.co_name)
             tb = tb.tb_next
         return tbInfo
+
+class GroupTestDriver(BaseDriver):
+    def _calcTestCases(self, modelTypes, tcPattern=None, outTcPattern=None, searchKey=None):
+        self.tdriver.tc.setRunCase(tcPattern, outTcPattern, searchKey, "show", True)
+        runinfo = self.tdriver.__runCases__(*modelTypes)
+        return [cn.split(" ")[0] for cn in runinfo['cases'][MTConst.passed].keys()]
+
+    def getRunGroups(self, modelTypes, tcPattern=None, outTcPattern=None, searchKey=None, pergroup=None, group=None, isbyname=False):
+        groups = []
+        if pergroup <= 1 and len(group) <= 1:
+            return groups
+
+        if pergroup > 1:
+            cases = self._calcTestCases(modelTypes, tcPattern, outTcPattern, searchKey)
+            curIndex = 0
+            while curIndex < len(cases):
+                groups.append(" |".join(cases[curIndex:curIndex + pergroup]))
+                curIndex += pergroup
+        elif len(group) > 1:
+            expcases = []
+            if outTcPattern is not None and outTcPattern != "":
+                expcases.append(outTcPattern)
+            for g in group:
+                if isbyname:
+                    cases = self._calcTestCases(modelTypes, g, " |".join(expcases), searchKey)
+                else:
+                    cases = self._calcTestCases(modelTypes, None , " |".join(expcases), g)
+                if len(cases) > 0:
+                    expcases += cases
+                    groups.append(" |".join(cases))
+        return groups
+
+    def runInProcess(self, groups, loadGroupRun, mtArgs):
+        import multiprocessing
+        caseruninfo = multiprocessing.Queue()
+        for i in range(len(groups)):
+            multiprocessing.Process(target=loadGroupRun, name="launch-%s" % i, args=(groups[i], i, mtArgs, caseruninfo)).start()
+
+        for i in range(len(groups)):
+            self._addRuninfo(caseruninfo.get())
+
+        self.tdriver.tc.setRunCase(runMode='run')
+        self.tdriver.tc.setRunLog(self.tdriver.logFilePath)
+        for gi in range(len(groups)):
+            with open("group_%s.log" % gi) as glog:
+                while True:
+                    l = glog.readline()
+                    if l == '':break
+                    self.tdriver.tc.tlog.infoText(l[0:len(l) - 1])
+        slog.info("="*60)
+        return self.tdriver.tc.report()
+
+    def _addRuninfo(self, tcInfos):
+        self.tdriver.tc.mergeResult(tcInfos, (MTConst.failed, MTConst.passed))
