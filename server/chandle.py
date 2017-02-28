@@ -376,6 +376,8 @@ class FileUploadHandler:
 
         return filePath, fileName
 
+class RedirectException(Exception):pass
+
 class ObjHandler:
     def __init__(self):
         self.objs = {}
@@ -488,7 +490,7 @@ class ObjHandler:
         info = infoHandler(apiLan, 4, infos)
         return info if isinstance(info, str) else _jsn.encode(info)
 
-    def __callObjFun__(self, reqPath, reqParam, session):
+    def __callObjFun__(self, reqPath, reqParam, session, path):
     # return code, result
         try:
             apiModule, apiName = reqPath[1:].split("/")
@@ -510,10 +512,12 @@ class ObjHandler:
                 if session is None:
                     r = api(**param)
                 else:
-                    if args.__contains__('session'):
-                        param['session'] = session
+                    if args.__contains__('__session__'): param['__session__'] = session
+                    if args.__contains__('__path__'): param['__path__'] = path
                     r = api(**param)
             return 0, r
+        except RedirectException as ex:
+            return 302, ex.message
         except Exception as ex:
             return 3, str(ex)
 
@@ -523,12 +527,13 @@ class ObjHandler:
         if reqParam is None:
             reqObj.sendResponse(self._infoObjs(reqPath))
         else:
-            reqObj.sendResponse(_jsn.encode(self.__callObjFun__(reqPath, reqParam, reqObj.session)))
+            ret = self.__callObjFun__(reqPath, reqParam, reqObj.session, reqObj.path)
+            if ret[0] == 302:
+                reqObj.redirectPath = ret[1]
+                reqObj.sendResponse("", None, 302)
+            else:
+                reqObj.sendResponse(_jsn.encode(ret))
 
 class CserviceProxyBase(ObjHandler):
     def __init__(self, objs):
         self.objs = objs
-
-    def __callObjFun__(self, reqPath, reqParam, session):
-        return ObjHandler.__callObjFun__(self, reqPath, reqParam, session)
-
