@@ -4,38 +4,49 @@ Created on 2011-2-21
 @author: chinple
 '''
 from libs.objop import ArgsOperation
-from mtest import tlog
 from libs.refrect import DynamicLoader
 import sys
 from tmodel.runner.vdriver import TestViewDriver
+from libs.syslog import slog
+
+def loadGroupRun(cases, gi, runargs, caseruninfo):
+    from mtest import driver
+    tl = TestLoader(driver, mtArgs=runargs)
+    tl.logFilePath = ["group_%s.log" % gi]
+    tl.tcPattern = cases
+    tl.rungroup = []
+    tl.pergroup = 0
+    tl.sender, tl.receiver, tl.smtp, tl.smtpLogin = "", "", "", ""
+
+    slog.info("Group %s running %s cases: %s" % (gi, cases.count("|") + 1, cases))
+    tl.launch(True)
+    caseruninfo.put(driver.tc.tcInfos)
 
 class TestLoader:
-    def __init__(self, driver, args):
+    def __init__(self, driver, args=None, mtArgs=None):
         self.driver = driver
-        mtArgs, parseMsg, isSuccess = ArgsOperation.parseArgs(args, [], None, *self.__getDefine())
-        tlog.infoText(parseMsg)
-        if not isSuccess:
-            sys.exit(-1)
+        if args is not None:
+            mtArgs, parseMsg, isSuccess = ArgsOperation.parseArgs(args, [], None, *self.__getDefine())
+            slog.info(parseMsg)
+            if not isSuccess:
+                sys.exit(-1)
         self.__defineArgs(mtArgs)
 
     def __defineArgs(self, mtArgs):
+        self.mtArgs = mtArgs
         
         self.logFilePath = mtArgs.log
-        self.isXmlLog = mtArgs.isxmllog
 
         self.testrunConfig = mtArgs.config
         self.runMode = mtArgs.mode
         self.tcPattern = mtArgs.__dict__['in']
         self.outTcPattern = mtArgs.__dict__['out']
-        self.searchKey = mtArgs.searchKey
 
         self.rerun = mtArgs.rerun
-        self.runGroup = mtArgs.group
-        self.perGroup = mtArgs.pergroup
-        self.isAsyncRun = mtArgs.isasync
-        self.isDupInGroup = mtArgs.isdup
-        self.isGroupByName = mtArgs.isbyname
-        self.groupTimeout = mtArgs.timeout
+        self.rungroup = mtArgs.group
+        self.pergroup = mtArgs.pergroup
+        self.isbyname = mtArgs.isbyname
+        self.grouptimeout = mtArgs.timeout
 
         self.codeFile = mtArgs.code
         self.baseClass = mtArgs.base
@@ -60,16 +71,25 @@ class TestLoader:
         self.fileList = mtArgs.file
         self.ignoreImportExcept = False
 
-    def launch(self):
+    def launch(self, returnRuninfo=False):
         driver = self.driver
         if self.runMode.startswith("m"):
             driver = TestViewDriver(self.driver)
 
         driver.initDriver(**self.__dict__)
         runInfo = driver.runDriver(*self.__loadModels())
+        if isinstance(runInfo, list):
+            from tmodel.runner.driver import GroupTestDriver
+            gt = GroupTestDriver(driver)
+            runInfo = gt.runInProcess(runInfo, loadGroupRun, self.mtArgs)
         driver.endDriver()
         if isinstance(runInfo, dict):
             self.report(runInfo)
+        if returnRuninfo:
+            return runInfo
+        try:
+            return runInfo[2]
+        except:pass
 
     def report(self, runInfo):
         from tmodel.runner.logsummary import SummaryReport
@@ -100,25 +120,20 @@ Example:
     ("f", "file", "fileList", [], "list"),
     ("r", "mode", "runMode: run, rerun, param, look, show, scenario, slook", "show"),
     ("d", "dir", "folderPath, cwd to folderPath before executing test cases"),
+    ("l", "log", "test log file", [], 'list'),
 
     ("c", "config", "test run config file", "mtest.ini"),
     ("p", "prop", "propName=PropValue, configure mtest.ini by CMD arguments", [], "prop"),
 
-    ("l", "log", "test log file", "testlog.log"),
-    ("x", "isxmllog", "isxmllog: is using xml-formatted log", "false", "bool"),
-    
     ("i", "in", "tcPattern"),
     ("o", "out", "outTcPattern"),
-    ("k", "searchKey", "searchKey"),
 
     ("rerun", "rerunTimes: rerun failed cases rerunTimes", 1, "int"),
-    ("group", "runGroupReg: run test cases in many groups", [], "list"),
-    ("pergroup", "perGroupNum, run perGroupNum test cases in many groups when not using group", 0, "int"),
-    ("isasync", "isAsyncRun: true means run cases in groups by asynchronous thread otherwise synchronous thread", "true", "bool"),
-    ("isdup", "isDupInGroup: true means allow duplicate cases in groups otherwise every case only run a time in all groups", "false", "bool"),
-    ("isbyname", "isGroupByName: true means /group represent test case name reg otherwise search key word reg", "true"),
-    ("timeout", "groupTimeout, set timeout(seconds) for every group when run cases in groups by asynchronous thread", 0, "int"),
-    
+    ("k", "group", "run test cases in groups by key word(testtype=p1)", [], "list"),
+    ("pergroup", "pergroupNum, run pergroupNum test cases in many groups when not using group", 0, "int"),
+    ("isbyname", "isbyname: true means group represent test case name reg otherwise search key word reg", "false", 'bool'),
+    ("timeout", "grouptimeout, set timeout(seconds) for every group when run cases in groups by asynchronous thread", 0, "int"),
+
     ("code", "codeFile"), ("graph", "graphPath"),
     ("base", "baseClass", "TestCaseBase"),
     ("namespace", "namespace", "mtestGeneratedCode"),
