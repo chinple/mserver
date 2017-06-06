@@ -1,0 +1,19 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<title>登陆</title>
+
+</head>
+
+
+<body class="easyui-layout">
+	<form action='/cservice/AuthApi/checkLogin' method='post'>
+		<input id='loginfrom' name='loginfrom' type='hidden'/>
+	<br>&nbsp;&nbsp;用户名：<input name='name'/> 密码：  <input name='password' type='password'/> <input type='submit' value='登陆' /> 
+	</form>
+</body>
+
+<script>
+loginfrom.value=window.location.search
+</script>
+</html>
