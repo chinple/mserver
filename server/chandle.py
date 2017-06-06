@@ -33,8 +33,8 @@ def parseRequestParam(paramStr):
             return _jsd.decode(paramStr)
         except:
             reqParam = {}
-            for name, value in parse_qsl(urllib.unquote(paramStr)):
-                reqParam[name] = value
+            for name, value in parse_qsl(paramStr):
+                reqParam[name] = urllib.unquote(value)
             return reqParam
     except:
         return {}
@@ -132,7 +132,7 @@ class CServerHandler(BaseHTTPRequestHandler):
         self.send_header('Server', self.version_string())
         self.send_header('Date', self.date_time_string())
 
-    def sendSimpleHeaders(self, respCode, contentType, contentLength):
+    def sendSimpleHeaders(self, respCode, contentType, contentLength, headers=None):
 
         self.sendHeaderCode(respCode)
         if self.sessionCookie is not None:
@@ -143,6 +143,9 @@ class CServerHandler(BaseHTTPRequestHandler):
             self.redirectPath = None
         self.send_header("Content-Type", "text/plain" if contentType is None else contentType)
         self.send_header("Content-Length", contentLength)
+        if headers is not None:
+            for h in headers:
+                self.send_header(h, headers[h])
         self.end_headers()
 
     def sendByteBody(self, rb):
@@ -158,8 +161,8 @@ class CServerHandler(BaseHTTPRequestHandler):
             else:
                 break
 
-    def sendByteResponse(self, bresp, contentType=None, respCode=None):
-        self.sendSimpleHeaders(respCode, contentType, len(bresp))
+    def sendByteResponse(self, bresp, contentType=None, respCode=None, headers=None):
+        self.sendSimpleHeaders(respCode, contentType, len(bresp), headers)
         self.sendByteBody(bresp)
 
     def sendResponse(self, resp, contentType=None, respCode=None):
@@ -361,7 +364,14 @@ class FileUploadHandler:
 
         filePath = None
         if fileName is not None:
-            filePath = "%s/%s" % (uploadFolder, fileName)
+            folder = tryGet(reqParam, 'folder' , "")
+            if folder == "":
+                folder = uploadFolder
+            else:
+                folder = "%s/%s" % (uploadFolder, folder)
+                if not os.path.exists(folder):os.mkdir(folder)
+
+            filePath = "%s/%s" % (folder, fileName)
             override = tryGet(reqParam, 'override' , "drop")
             if os.path.exists(filePath):
                 if override != "override":
@@ -377,6 +387,11 @@ class FileUploadHandler:
         return filePath, fileName
 
 class RedirectException(Exception):pass
+class ReturnFileException(Exception):
+    def __init__(self, filecontent, contentType="text/txt", filename=None):
+        self.message = filecontent
+        self.contentType = contentType
+        self.filename = filename
 
 class ObjHandler:
     def __init__(self):
@@ -418,6 +433,8 @@ class ObjHandler:
                     apiLan = "Param"
                 elif f == "js":
                     apiLan = "Js"
+                elif f == 'ajax':
+                    apiLan = 'Ajax'
                 elif apiFilter is None:
                     apiFilter = f
         return apiFilter, apiLan
@@ -474,7 +491,20 @@ class ObjHandler:
             infos.append("%s{%s};" % (funName, funDefine))
         else:
             return "\n".join(infos)
-                 
+
+    def _infoAjax(self, apiLan, apiLevel, infos, moduleName=None, apiName=None, minfo=None):
+        if apiLevel == 1:
+            return []
+        elif apiLevel == 2:
+            infos.append("%s = {};" % moduleName)
+        elif apiLevel == 3:
+            argName = ":,".join(minfo['api'][apiName])
+            funName = "%s.%s = function(params, sucCallback, errCallback)" % (moduleName, apiName)
+            funDefine = "\n//%s\n return cserviceAjax('/cservice/%s/%s', params, sucCallback, errCallback);" % (argName, moduleName, apiName)
+            infos.append("%s{%s};" % (funName, funDefine))
+        else:
+            return "\n".join(infos)
+
     def _infoObjs(self, reqPath):
         apiFilter, apiLan = self.__parseInfoparam(reqPath)
 
@@ -518,6 +548,8 @@ class ObjHandler:
             return 0, r
         except RedirectException as ex:
             return 302, ex.message
+        except ReturnFileException as ex:
+            return 4, ex
         except Exception as ex:
             return 3, str(ex)
 
@@ -531,6 +563,10 @@ class ObjHandler:
             if ret[0] == 302:
                 reqObj.redirectPath = ret[1]
                 reqObj.sendResponse("", None, 302)
+            elif ret[0] == 4:
+                fex = ret[1]
+                headers = None if fex.filename is None else {'content-disposition':"attachment;filename=%s" % fex.filename}
+                reqObj.sendByteResponse(bytes(str(fex.message)), fex.contentType, headers=headers)
             else:
                 reqObj.sendResponse(_jsn.encode(ret))
 
