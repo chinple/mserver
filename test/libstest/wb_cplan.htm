@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>测试计划</title>
+<link href="js/css/bootstrap.min.css" rel="stylesheet">
+<link href="js/css/style.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css"
+	href="js/themes/default/easyui.css">
+<link rel="stylesheet" type="text/css" href="js/themes/icon.css">
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="js/jquery.easyui.min.js"></script>
+<script src="CTestClient.js"></script>
+<script src="/cservice/js"></script>
+<script src="cplantree.js"></script>
+</head>
+
+<header class="navbar  navbar-fixed-top navbar-static-top bs-docs-nav" role="banner">
+	<div class="navbar navbar-left">
+		<nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
+			<ul class="nav navbar-nav">
+				<li style= "background:#e8e8e8"><a href="/cplan.html">测试计划</a> </li>
+				<li><a href="/cplancase.html">测试用例</a></li>
+				<li><a href="/cplanenv.html">测试环境</a></li>
+				<li><a href="/ctools.html">测试工具</a></li>
+				<li><a href="cconfig.html">配置管理</a></li>
+			</ul>
+		</nav>
+	</div>
+	<div class="navbar navbar-right">
+			<ul class="nav navbar-nav">
+				<li><a href='#' id='welcomeid'></a> </li>
+			</ul>
+	</div>
+</header>
+<script>
+welcomeid.innerHTML = AuthApi.getLoginInfo().name+' 欢迎您'
+</script>
+
+<body class="easyui-layout">
+
+	<div data-options="region:'north',border:false" style="height: 10ptx;">
+		<br> <br> <br>
+	</div>
+
+<!-- tree folder list -->
+	<div data-options="region:'west',split:true,title:''"
+		style="width: 230px; padding: 10px;">
+		<ul class="easyui-tree" id="folder-list"
+			data-options="animate:true,checkbox:false"></ul>
+	</div>
+
+	<div id="treeMenu" class="easyui-menu" style="width: 150px;">
+		<div id="addTreeData" onclick="treeDataTool.showTreeData(1)"
+			data-options="iconCls:'icon-add'">新增计划</div>
+		<div id="addTreeData" onclick="treeDataTool.showPlanReport()"
+			data-options="iconCls:'icon-add'">查看计划组</div>
+		<div class="menu-sep"></div>
+		<div onclick="treeTool.showTreeNode(1)"
+			data-options="iconCls:'icon-add'">新增目录</div>
+		<div onclick="treeTool.showTreeNode(0)"
+			data-options="iconCls:'icon-edit'">修改目录</div>
+		<div onclick="treeTool.deleteTreeNode()"
+			data-options="iconCls:'icon-remove'">删除目录</div>
+	</div>
+
+	<div id="treeAdd" class="easyui-dialog" title="目录"
+		data-options="iconCls:'icon-save',closable:true,closed:true,modal:true"
+		style="width: 600px; height: 80px; padding: 10px;">
+		<input id='treeName' size=50 />&nbsp;&nbsp; <input type='checkbox'
+			id='isRootTree'>根目录&nbsp;&nbsp;&nbsp;&nbsp; <a href="#"
+			onclick="treeTool.saveTreeNode()" class="easyui-linkbutton">保存目录</a>
+	</div>
+
+<!-- tree data -->
+	<div id="treedataadd" class="easyui-dialog" title="用例"
+		data-options="iconCls:'icon-save',closable:true,closed:true,modal:true"
+		style="width: 1000px; height: 500px; padding: 10px;">
+		目的: &nbsp;&nbsp;&nbsp;&nbsp;<input id='planName' size=80>&nbsp;&nbsp;
+		类别：<select id='ptype'> <option value='版本测试'>版本测试</option> <option value='自动化测试'>自动化测试</option> <option value='专项测试'>专项测试</option> <option value='日常计划'>日常计划</option>
+			   </select>&nbsp;&nbsp; 
+		优先级：<select
+			id='planPriority'><option value='P0'>P0</option>
+			<option value='P1'>P1</option>
+			<option value='P2'>P2</option></select>&nbsp;&nbsp; 
+		<br><br>
+		标签: &nbsp;&nbsp;&nbsp;&nbsp;<input id='planTags' size=50 />&nbsp;&nbsp;
+		参与人: &nbsp;&nbsp;<input id='planOwner' size=50 />
+		<br><br>
+		状态: &nbsp;&nbsp;&nbsp;&nbsp;
+		<select id='planStatus'>
+			<option value='2'>已创建</option>
+			<option value='0'>有风险</option>
+			<option value='1'>进行中</option>
+			<option value='3'>已经完成</option>
+			<option value='4'>暂停</option>
+		</select>,&nbsp;&nbsp; 
+		计划开始时间:<input
+			id='pstarttime' class="easyui-datebox"
+			data-options="formatter:myformatter,parser:myparser"
+			style="width: 100px" /> 
+		~结束时间:<input id='pendtime'
+			class="easyui-datebox"
+			data-options="formatter:myformatter,parser:myparser"
+			style="width: 100px" />
+		&nbsp;&nbsp; 
+		实际开始时间:<input id='starttime'
+			class="easyui-datebox"
+			data-options="formatter:myformatter,parser:myparser"
+			style="width: 100px" /> ~结束时间: <input id='endtime'
+			class="easyui-datebox"
+			data-options="formatter:myformatter,parser:myparser"
+			style="width: 100px" /> <br> <br> 
+		详情: &nbsp;&nbsp;&nbsp;&nbsp;<textarea id='planSummary' rows=6 cols=120></textarea><br>
+		风险: &nbsp;&nbsp;&nbsp;&nbsp;<textarea id='planIssues' rows=6 cols=120></textarea><br><br>
+		<a href="#"
+			onclick="treeDataTool.saveTreeData(1)" class="easyui-linkbutton"> 保存</a>&nbsp;&nbsp;&nbsp;
+		<a href="#" onclick="treeDataTool.saveTreeData(0)"
+			class="easyui-linkbutton">保存并添加</a>
+	</div>
+	
+	<div data-options="region:'center'">
+		<div class="easyui-panel" data-options="multiple:true"
+			style="background: #f5f5f5; width: 100%">
+			<div id="planCondition">
+				<input id='condPlanName' size=30 onkeypress="if(event.keyCode==13) treeDataTool.loadTreeDataList()"/>
+				<select id='condptype' onchange='treeDataTool.loadTreeDataList()'> <option value=''>所有测试</option> <option value='版本测试'>版本测试</option> <option value='自动化测试'>自动化测试</option> <option value='专项测试'>专项测试</option> <option value='日常计划'>日常计划</option></select>&nbsp;&nbsp; 
+				<select id='condplanPriority'  onchange='treeDataTool.loadTreeDataList()'> <option value=''>所有</option> <option value='P0'>P0</option> <option value='P1'>P1</option> <option value='P2'>P2</option></select>&nbsp;&nbsp; 
+				
+				<select id='condplanStatus'  onchange='treeDataTool.loadTreeDataList()'> <option value='9'>非已完成</option> <option value=''>所有状态</option> <option value='2'>已创建</option> <option value='0'>有风险</option> <option value='1'>进行中</option> <option value='3'>已经完成</option> <option value='4'>暂停</option>
+				</select>
+			</div>
+		</div>
+
+		<div data-options="multiple:true">
+			<table id='treedatalist' style='height: 800px'
+				data-options='singleSelect:true,rownumbers:true,pagination:true,pageSize:20'></table>
+		</div>
+	</div>
+	
+	<div id="planGroups" class="easyui-dialog" title="计划组"
+		data-options="iconCls:'icon-save',closable:true,closed:true"
+		style="width: 1550px; height: 800px; padding: 10px;">
+			<select id='condgptype' onchange='treeDataTool.loadPlanReport()'>
+				<option value=''>所有测试</option>
+				<option value='版本测试,自动化测试'>版本测试及其自动化</option>
+				<option value='版本测试'>版本测试</option>
+				<option value='自动化测试'>自动化测试</option>
+				<option value='专项测试'>专项测试</option>
+				<option value='日常计划'>日常计划</option></select>&nbsp;&nbsp;
+			
+			<select id='condpgStatus'  onchange='treeDataTool.loadPlanReport()'>
+				<option value='9'>非已完成</option>
+				<option value=''>所有状态</option>
+				<option value='2'>已创建</option>
+				<option value='0'>有风险</option>
+				<option value='1'>进行中</option>
+				<option value='3'>已经完成</option>
+				<option value='4'>暂停</option>
+			</select>
+			
+			<input id='condpgName' size=30 value='应用编排,应用调度,服务管控,软件仓库,开发流水线build,平台OM,API'
+				onkeypress="if(event.keyCode==13) treeDataTool.loadPlanReport()"/>
+		<br><br>
+		<div id='planGroupsContent' width='100%'></div>
+	</div>
+
+</body>
+
+<script type="text/javascript">
+treeTool.treeRootId = 1
+var riskStatusDefine = ['有风险','进行中','已创建', '已经完成','暂停']
+treeDataTool = {
+	// tree datas 
+	loadTreeDataList : function(nid1,nid2) {
+		var treeSelected = $('#folder-list').tree('getSelected')
+		if(treeSelected.tlayer==1)
+			nid1 = treeSelected.nid
+		else if(treeSelected.tlayer==2)
+			nid2 = treeSelected.nid
+
+		var nameOrTags = $('#condPlanName').val()
+		var ptype    = $('#condptype').val()
+		var priority = $('#condplanPriority').val()
+		var inStatus = $('#condplanStatus').val()
+		var outStatus = undefined
+		if(inStatus==9){
+			inStatus=undefined
+			outStatus='3'
+		}
+
+		var datas = CTestPlanAPi.getCtestplan(treeTool.tree.nid, nid1, nid2, nameOrTags, ptype, priority, inStatus, outStatus)
+		var dataCols = [
+			{ field : 'planid',title : '操作',width : 65,formatter : function(value, row, index) {
+				return '<select onChange=\'treeDataTool.operateTreeData(' + value +', this.value)\'> <option>ID'+value+'</option> <option value=1>修改</option> <option value=2>删除</option> </select>'
+			}},
+			{ field : 'name',title : '名称',width : "150",formatter : function(value, row, index) {
+				return '<a href="cplanexecute.html?planid=' + row.planid + '">'+value+'</a>' 	}
+			},
+			{ field : 'ptype',title : '类别',width : 60 }, 
+			{ field : 'tags',title : '标签',width : 200 }, 
+			{ field : 'owner',title : '参与人',width : 200 }, 
+			{ field : 'status',title : '状态',width : 50,formatter:function(value, row, index){
+				return riskStatusDefine[value] 	} }, 
+			{ field : 'priority',title : '优先级',width : 50 }, 
+			{ field : 'progress',title : '进度%',width : 50 }, 
+			{ field : 'planTime',title : '计划时间',width : 150, formatter:function(value, row, index){ 
+				return (row.pstarttime?row.pstarttime.split(' ')[0]:"") +"~"+ (row.pendtime?row.pendtime.split(' ')[0]:"")   } 
+			}, 
+			{ field : 'actTime',title : '实际时间',width : 150, formatter:function(value, row, index){
+				return (row.starttime?row.starttime.split(' ')[0]:"") +"~"+ (row.endtime?row.endtime.split(' ')[0]:"")   } 
+			}, 
+			{ field : 'summary',title : '目的',width : '30%' }, 
+			{ field : 'issues',title : '风险',width : '30%' }
+		]
+
+		$('#treedatalist').datagrid( treeTool.getLoadDataJson(dataCols, datas))
+	},
+
+	operateTreeData : function(value,opType) {
+		if(opType==1){
+			treeDataTool.showTreeData(0, value)
+			return
+		}else if(opType==2){
+			var planData = treeTool.getDataByName($('#treedatalist').datagrid('getData'), 'planid', value)
+			$.messager.confirm('计划', '确定删除计划', function(r){
+				if (r){
+					CTestPlanAPi.deleteCtestplan(planData.planid)
+					treeDataTool.loadTreeDataList()
+				}
+			});
+		}
+	},
+
+	showTreeData : function(isNew,value) {
+		$('#treedataadd').dialog('open')
+		var planData = treeTool.getDataByName($('#treedatalist').datagrid('getData'), 'planid', value)
+		if (isNew)
+			$("#planName").val("")
+		else if (planData) {
+			$("#planName").val(planData.name)
+			$("#planOwner").val(planData.owner)
+			$("#planSummary").val(planData.summary)
+			$("#planIssues").val(planData.issues)
+			$("#planTags").val(planData.tags)
+			//$("#progress").val(planData.progress)
+			$("#ptype").val(planData.ptype)
+			$("#planPrioirity").val(planData.priority)
+			$("#planStatus").val(planData.status)
+			$("#planOwner").val(planData.owner)
+
+			$("#pstarttime").datebox("setValue", planData.pstarttime)
+			$("#pendtime").datebox("setValue", planData.pendtime)
+			$("#starttime").datebox("setValue", planData.starttime)
+			$("#endtime").datebox("setValue", planData.endtime)
+		}
+		treeTool.isNew = isNew
+		var fnid = treeTool.nid
+	},
+
+	saveTreeData : function(isClose) {
+		var name = $("#planName").val()
+		var owner = $("#planOwner").val()
+		var tags  = $("#planTags").val()
+		var summary = $("#planSummary").val()
+		var issues = $("#planIssues").val()
+
+		var ptype = $("#ptype").val()
+		var priority = $("#planPriority").val()
+		var status = $("#planStatus").val()
+		var progress = 0
+
+		var pstarttime = $("#pstarttime").datebox("getValue")
+		var pendtime = $("#pendtime").datebox("getValue")
+		var starttime = $("#starttime").datebox("getValue")
+		var endtime = $("#endtime").datebox("getValue")
+		var mailto = ""
+		var nid1 = treeTool.nid1
+		var nid2 = treeTool.nid2
+		if (treeTool.isNew) {
+			var fnid = treeTool.tree.nid
+			var planid = undefined
+		} else {
+			var planData = $('#treedatalist').datagrid('getSelected');
+			var planid = planData.planid
+			var progress = planData.progress
+			var fnid = planData.fnid
+		}
+		CTestPlanAPi.saveCtestplan(name, owner, tags, summary, issues,
+			ptype, priority, status, progress, pstarttime, pendtime, starttime, endtime,
+			mailto, fnid, nid1, nid2, planid)
+	
+		if (isClose)
+			$('#treedataadd').dialog('close')
+		treeTool.isNew = true
+		treeDataTool.loadTreeDataList()
+	},
+	// plandetail
+	showPlanReport: function(){
+		$('#planGroups').dialog('open')
+		treeDataTool.loadPlanReport()
+	},
+	loadPlanReport: function(nid1,nid2) {
+		var treeSelected = $('#folder-list').tree('getSelected')
+		var fnid = treeTool.tree.nid
+		if(treeSelected.tlayer==1)
+			nid1 = treeSelected.nid
+		else if(treeSelected.tlayer==2)
+			nid2 = treeSelected.nid
+		var ptype    = $('#condgptype').val()
+		var inStatus = $('#condpgStatus').val()
+		var name     = $('#condpgName').val()
+		var outStatus = undefined
+		if(inStatus==9){
+			inStatus=undefined
+			outStatus='3'
+		}
+		var pr = CTestPlanAPi.getPlanReport(ptype,inStatus,outStatus,fnid,nid1,nid2,name)
+		planGroupsContent.innerHTML = pr
+	}
+}
+
+treeTool.initTree()
+
+</script>
+
+</html>
