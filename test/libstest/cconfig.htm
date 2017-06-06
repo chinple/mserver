@@ -1,0 +1,226 @@
+<!DOsubject html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>测试用例</title>
+<link href="js/css/bootstrap.min.css" rel="stylesheet">
+<link href="js/css/style.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css"
+	href="js/themes/default/easyui.css">
+<link rel="stylesheet" type="text/css" href="js/themes/icon.css">
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="js/jquery.easyui.min.js"></script>
+<script src="CTestClient.js"></script>
+<script src="/cservice/js"></script>
+<script src="cplantree.js"></script>
+</head>
+
+<header class="navbar  navbar-fixed-top navbar-static-top bs-docs-nav" role="banner">
+	<div class="navbar navbar-left">
+		<nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
+			<ul class="nav navbar-nav">
+				<li><a href="/cplan.html">测试计划</a> </li>
+				<li><a href="/cplancase.html">测试用例</a></li>
+				<li><a href="/cplanenv.html">测试环境</a></li>
+				<li><a href="/ctools.html">测试工具</a></li>
+				<li style= "background:#e8e8e8"><a href="cconfig.html">配置管理</a></li>
+			</ul>
+		</nav>
+	</div>
+	<div class="navbar navbar-right">
+			<ul class="nav navbar-nav">
+				<li><a href='#' id='welcomeid'></a> </li>
+			</ul>
+	</div>
+</header>
+<script>
+welcomeid.innerHTML = AuthApi.getLoginInfo().name+' 欢迎您'
+</script>
+
+<body class="easyui-layout">
+
+	<div data-options="region:'north',border:false" style="height: 10ptx;">
+		<br><br><br>
+	</div>
+
+<!-- tree folder list -->
+	<div data-options="region:'west',split:true,title:''"
+		style="width: 230px; padding: 10px;">
+		<ul class="easyui-tree" id="folder-list"
+			data-options="animate:true,checkbox:false"></ul>
+	</div>
+
+	<div id="treeMenu" class="easyui-menu" style="width: 150px;">
+		<div id="addTreeData" onclick="treeDataTool.showTreeData(1)"
+			data-options="iconCls:'icon-add'">新增配置</div>
+		<div class="menu-sep"></div>
+		<div onclick="treeTool.showTreeNode(1)"
+			data-options="iconCls:'icon-add'">新增目录</div>
+		<div onclick="treeTool.showTreeNode(0)"
+			data-options="iconCls:'icon-edit'">修改目录</div>
+		<div onclick="treeTool.deleteTreeNode()"
+			data-options="iconCls:'icon-remove'">删除目录</div>
+	</div>
+
+	<div id="treeAdd" class="easyui-dialog" title="目录"
+		data-options="iconCls:'icon-save',closable:true,closed:true"
+		style="width: 600px; height: 80px; padding: 10px;">
+		<input id='treeName' size=50 />&nbsp;&nbsp; <input type='checkbox'
+			id='isRootTree'>根目录&nbsp;&nbsp;&nbsp;&nbsp; <a href="#"
+			onclick="treeTool.saveTreeNode()" class="easyui-linkbutton">保存目录</a>
+	</div>
+
+<!-- tree data -->
+	<div id="treedataadd" class="easyui-dialog" title="配置"
+		data-options="iconCls:'icon-save',closable:true,closed:true,modal:true"
+		style="width: 900px; height: 420px; padding: 10px;">
+		<table>
+			<tr><td>主题 </td> <td> <input id='subject' size=37 />
+				&nbsp;&nbsp; 标签 <input id='ckey' size=40/>&nbsp;&nbsp; 
+				<select id='stype'>
+					<option value='1'>字符串</option>
+					<option value='2'>JSON</option>
+					<option value='3'>文件</option>
+					<option value='4'>其他</option>
+				</select>
+			<tr><td colspan=2> <br> </td></tr>
+			<tr><td>名称 </td> <td> <input id='cname' size=100> </td></tr>
+			<tr><td colspan=2> <br> </td></tr>
+			<tr><td>内容 </td> <td> <textarea id='ccontent' cols=110 rows=14></textarea> </td></tr>
+		</table>
+		
+		<br><a href="#" onclick="treeDataTool.saveTreeData(1)"
+			class="easyui-linkbutton"> 保存</a>&nbsp;&nbsp;&nbsp; <a href="#"
+			onclick="treeDataTool.saveTreeData(0)" class="easyui-linkbutton">保存并添加</a>
+	</div>
+	
+	<div data-options="region:'center'">
+		<div class="easyui-panel" data-options="multiple:true"
+			style="background: #f5f5f5; width: 100%">
+			<div id="caseCondition">
+				主题<input id='condSubject' size=20 onkeypress="if(event.keyCode==13) treeDataTool.loadTreeDataList()"/> 
+				&nbsp;名称<input id='condCname' size=29 onkeypress="if(event.keyCode==13) treeDataTool.loadTreeDataList()"/>
+				&nbsp;标签 <input id='condCkey' size=30 onkeypress="if(event.keyCode==13) treeDataTool.loadTreeDataList()"/> 
+		
+				<select id='condStype' onchange='treeDataTool.loadTreeDataList()'>
+					<option value=''>所有类型</option>
+					<option value='1'>字符串</option>
+					<option value='2'>JSON</option>
+					<option value='3'>文件</option>
+					<option value='4'>其他</option>
+				</select>
+			</div>
+		</div>
+
+		<div data-options="multiple:true">
+			<table id='treedatalist' style='height: 800px'
+				data-options='singleSelect:true,rownumbers:true,pagination:true,pageSize:20'></table>
+		</div>
+	</div>
+
+</body>
+
+<script type="text/javascript">
+treeTool.treeRootId = 2
+var ctypeDefine = ['', '字符串','JSON','文件', '其他']
+treeDataTool = {
+	// tree datas 
+	loadTreeDataList : function(nid1,nid2) {
+		var treeSelected = $('#folder-list').tree('getSelected')
+		if(treeSelected.tlayer==1)
+			nid1 = treeSelected.nid
+		else if(treeSelected.tlayer==2)
+			nid2 = treeSelected.nid
+
+		var subject = $('#condSubject').val()
+		var stype    = $('#condStype').val()
+		var cname = $('#condCname').val()
+		var ckey = $('#condCkey').val()
+
+		var cdatas = CTestPlanAPi.getTestConfig(subject,stype,cname,ckey,treeSelected.nid,nid1,nid2)
+		treeDataTool.fileLink = cdatas['fileLink']
+		var datas = cdatas['data']
+
+		var dataCols = [ { field : 'configid',title : '操作',width : 65,formatter : function(value, row, index) {
+			return '<select onChange=\'treeDataTool.operateTreeData(' + value +', this.value)\'> <option>ID '+value+'</option> <option value=1>修改</option> <option value=2>删除</option> </select>'
+		  }},
+		  { field : 'subject',title : '主题',width : 100},
+		  { field : 'cname',title : '配置名',width : 200},
+		  { field : 'stype',title : '类型',width : 60,formatter : function(value, row, index) {
+		    var v = ctypeDefine[value]
+			if(value=='3'){
+			    var l = treeDataTool.fileLink + row.cname
+				v += ' <a href="' + l+'" title="' + l+'">链接</a>'
+			}
+			return v;
+		  }},
+		  { field : 'ckey',title : '标签',width : 200},
+		  { field : 'owner',title : '修改人',width : 80},
+		  { field : 'modifytime',title : '修改时间',width : 130},
+		  { field : 'ccontent',title : '内容',width : 500}]
+
+		$('#treedatalist').datagrid( treeTool.getLoadDataJson(dataCols, datas))
+	},
+
+	operateTreeData : function(value,opType) {
+		if(opType==1){
+			treeDataTool.showTreeData(0, value)
+			return
+		}else if(opType==2){
+			var tdata = treeTool.getDataByName($('#treedatalist').datagrid('getData'), 'configid', value)
+			$.messager.confirm('用例', '确定删除配置'+ tdata.cname, function(r){
+				if (r){
+					CTestPlanAPi.deleteTestConfig(tdata.configid)
+					treeDataTool.loadTreeDataList()
+				}
+			});
+		}
+	},
+
+	showTreeData : function(isNew,value) {
+		$('#treedataadd').dialog('open')
+		var tdata = treeTool.getDataByName($('#treedatalist').datagrid('getData'), 'configid', value)
+		if (isNew){
+			$("#ccontent").val("")
+		}	
+		else if (tdata) {
+			treeDataTool.tdata = tdata
+			$("#cname").val(tdata.cname)
+			$("#subject").val(tdata.subject)
+			$("#ckey").val(tdata.ckey)
+			$("#stype").val(tdata.stype)
+			$("#ccontent").val(tdata.ccontent)
+		}
+		treeTool.isNew = isNew
+		var fnid = treeTool.nid
+	},
+
+	saveTreeData : function(isClose) {
+		var tdata = treeDataTool.tdata
+
+		var cname = $("#cname").val()
+		var subject = $("#subject").val()
+		var ckey = $("#ckey").val()
+		var stype = $("#stype").val()
+		var ccontent = $("#ccontent").val()
+
+		var fnid = treeTool.isNew ? treeTool.tree.nid : tdata.fnid
+		var nid1 = treeTool.nid1
+		var nid2 = treeTool.nid2
+		var configid = treeTool.isNew ? undefined : tdata.configid
+
+		CTestPlanAPi.saveTestConfig(cname,subject,ckey,stype,ccontent,fnid,nid1,nid2,configid)
+
+		treeDataTool.tdata = undefined
+		if (isClose)
+			$('#treedataadd').dialog('close')
+		treeTool.isNew = true
+		treeDataTool.loadTreeDataList()
+	}
+}
+
+treeTool.initTree()
+
+</script>
+
+</html>
