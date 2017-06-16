@@ -41,6 +41,6 @@ class AdapterFunDecorator:
             result = DynamicAction(self.objFun, tupleArg, jsonArg, adpInfo).getDynamicResult("")
             return result
         h = adpInfo['_sys_h']
-        if h == None:
+        if h is None:
             raise AdapterException("No handler")
         return h(self.obj, self.objFun, tupleArg, jsonArg, adpInfo)

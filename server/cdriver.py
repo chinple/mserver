@@ -34,7 +34,7 @@ class ServerDriver:
         slog.warn("%s:%s register to %s with %s" % (exip, ", ".join(ports), self.regServer, self.regName))
         if self.regServer is not None:
             from server.cclient import curlCservice
-            curlCservice(self.regServer, 'LTestExe/RegistServer',
+            curlCservice(self.regServer, 'CServiceTool/RegistServer',
                 hostport="%s:%s" % (exip, ports[0]), serverName=self.regName)
 
     def setDriverByArgs(self, args):
