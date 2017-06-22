@@ -12,7 +12,7 @@ def stressScenario(startThreads=3, maxThreads=10, step=1, expTps=50):
     return __stressMiddleFun
 
 def apiStatisticHandler(obj, objFun, tupleArg, jsonArg, adpInfo):
-    rh=_sc.getApiRunner(objFun)
+    rh = _sc.getApiRunner(objFun)
     return rh.runHandler(*tupleArg, **jsonArg)[1]
 
 def running(*args):
@@ -25,7 +25,3 @@ def running(*args):
         args = ["-t", sys.argv[0]] + StrOperation.splitStr(args[0], " ", '"')
     _sc.setRunnerByArgs(True, args)
     _sc.launch()
-
-if __name__ == '__main__':
-    import sys
-    running(*sys.argv[1:])

@@ -10,7 +10,7 @@ from db.sqltool import SqlOpTool
 class BillSqlTool(SqlOpTool):
     def __init__(self, isCheckUpdate=True, isSupportDelete=False, isSupportAnySql=False, dbstoreName="dbstore"):
         SqlOpTool.__init__(self, False, True, True, dbstoreName)
-    
+
     def addConn(self, configName, host, port, user, passwd):
         return SqlOpTool.__addConn__(self, configName, host, port, user, passwd)
 

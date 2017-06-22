@@ -15,4 +15,4 @@ class LogHttpProxy(LogHttpHandle):
 
 if __name__ == "__main__":
     from cserver import servering
-    servering(" -p 8080")
+    servering(" ")

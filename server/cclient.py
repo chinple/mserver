@@ -22,6 +22,21 @@ class HttpClient:
         self.setCookie()
         self.setLogInfo()
 
+    _cmanager = {}
+    @staticmethod
+    def getThreadClient(hostport, connTimeout=None, keepAlive=False):
+        from logging import thread
+        tid = thread.get_ident()
+        try:
+            c = HttpClient._cmanager[tid][hostport]
+            return c
+        except:pass
+        c = HttpClient(hostport, connTimeout, keepAlive)
+        if not HttpClient._cmanager.__contains__(tid):
+            HttpClient._cmanager[tid] = {}
+        HttpClient._cmanager[tid][hostport] = c
+        return c
+
     def setConn(self, connTimeout):
         try:
             hosts = self.hostport.split(":")
@@ -125,16 +140,18 @@ class HttpClient:
     def close(self):
         self._httpConn.close()
 
-def curl(url, body=None, isReadResp=True, logHandler=None, logHeader=False, logResp=False, isRespHeader=False, connTimeout=None, command=None, client=None, **headers):
+def curl(url, body=None, isReadResp=True, logHandler=None, logHeader=False, logResp=False,
+         isRespHeader=False, connTimeout=None, command=None, hasSession=False, **headers):
     url = url.replace("http://", "")
     try:
         i = url.index("/")
         hosts, path = url[0:i], url[i:]
     except:
         hosts, path = url, ""
-    if client is None:
-        client = HttpClient(hosts, connTimeout)
-        client.setLogInfo(logHandler, logHeader, logResp)
+
+    client = HttpClient.getThreadClient(hosts, connTimeout) if hasSession else HttpClient(hosts, connTimeout) 
+    client.setLogInfo(logHandler, logHeader, logResp)
+
     if command is None:
         command = "GET" if body is None else "POST"
     try:

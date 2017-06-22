@@ -31,7 +31,7 @@ class ServerDriver:
 
     def __registerService(self, exip, ports):
         from libs.syslog import slog
-        slog.warn("%s:%s register to %s with %s" % (exip, ", ".join(ports), self.regServer, self.regName))
+        slog.warn("%s:%s register to %s with %s" % (exip, ", ".join([str(p) for p in ports]), self.regServer, self.regName))
         if self.regServer is not None:
             from server.cclient import curlCservice
             curlCservice(self.regServer, 'CServiceTool/RegistServer',

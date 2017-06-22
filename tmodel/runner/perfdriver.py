@@ -9,6 +9,8 @@ import math
 import thread
 from libs.objop import ArgsOperation
 from libs.syslog import slog
+from libs.refrect import DynamicLoader
+from mtest import tprop
 
 class ThreadRunner(Thread):
     def __init__(self, manager, thid):
@@ -264,13 +266,17 @@ class StressScheduler:
         if not isSuccess:
             import sys
             sys.exit(-1)
+        tprop.load(cArgs.config)
 
         self.runMode = cArgs.runMode
         self.inPattern = cArgs.inPattern
         self.apiIntervalTps = cArgs.apiIntervalTps
+        self.perfArgs = (cArgs.startThreads, cArgs.maxThreads, cArgs.step, cArgs.expTps) if cArgs.isResetPerf else None
         self.sreport.setReporter(cArgs.maxTime, cArgs.isKeepRunning)
         if cArgs.url != "":
             self.__checkCurl(cArgs)
+
+        DynamicLoader.getClassFromFile("stressScenario", False, *cArgs.stubFiles)
 
     def __checkCurl(self, cArgs):
         url, body = cArgs.url, cArgs.body
@@ -279,12 +285,13 @@ class StressScheduler:
             body.replace("{thid}", str(thid)).replace("{degree}", str(degree)) if (body and body != "") else None)
         if self.runMode == "debug":
             print(stsHandler(0, 0))
-        self.addScenario(stsHandler, cArgs.startThreads, cArgs.maxThreads, cArgs.step, expTps=10240)
+        self.addScenario(stsHandler, cArgs.startThreads, cArgs.maxThreads, cArgs.step, cArgs.expTps)
 
     def __getDefine(self):
         return (("r", "runMode", "run|show|debug", 'run'),
             ("t", "stubFiles", "files", [], 'list'),
             ("i", "inPattern", "in pattern", ''),
+            ("c", "config", "test run config file", "mtest.ini"),
             
             ("apiIntervalTps", "", 200, 'int'),
             ("maxTime", "", 9999999, 'int'),
@@ -292,9 +299,12 @@ class StressScheduler:
             
             ("url", "curl URL for stress test, such as http://127.0.0.1/", ''),
             ("body", "post body", ""),
+
+            ("isResetPerf", "reset perf args if true", False, 'bool'),
             ("startThreads", "startThreads of curl stress test", 2, 'int'),
             ("maxThreads", "maxThreads of curl stress test", 30, 'int'),
-            ("step", "step of curl stress test", 2, 'int')
+            ("step", "step of curl stress test", 2, 'int'),
+            ("expTps", "expected TPS", 1024, 'int')
         )
         
     def __isInscope__(self, name):
@@ -311,6 +321,8 @@ class StressScheduler:
         return r
 
     def addScenario(self, stsHandler, startThreads, maxThreads, step, expTps):
+        if self.perfArgs is not None:
+            startThreads , maxThreads , step, expTps = self.perfArgs
         self.managers[stsHandler.__name__] = (ThreadStatisticRunner(self.sreport, stsHandler,
             startThreads , maxThreads , step, expTps))
 
