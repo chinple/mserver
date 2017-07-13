@@ -36,7 +36,7 @@ class ProxyHttpHandle:
             try:
                 # get by path
                 ps = self.__getPathProxy__(path) if self.isEnablePath else None
-                if ps is None:# get by host
+                if ps is None:  # get by host
                     ip = headers["host"].lower()
                     ps = ip.split(":")
                     if len(ps) == 2:
@@ -95,7 +95,7 @@ class ProxyHttpHandle:
         if self.isMock and _tryExecute(self.__isMockRquest__, (reqPath, reqParam, reqObj.headers, reqObj.client_address), False):
             resp = self.__getMockResponse__(reqPath, reqParam, reqObj.headers)
             isMock, reqHeader, respStatus, respBody = True, reqObj.headers, 200, bytes(resp)
-            respHeader = {"Content-Length":len(respBody)}
+            respHeader = [("Content-Length", len(respBody)), ("Content-Type", "text/plan;charset=utf-8")]
         else:
             try:
                 reqHeader, respObj = self.__sendProxyRequest(reqObj, reqParam if isPost else None)

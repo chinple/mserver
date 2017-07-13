@@ -77,10 +77,20 @@ class HttpToolBase:
         resp = "%s%s" % ObjOperation.jsonEqual(p1, p2)
         return resp
 
-    def sendHttpRequest(self, url, command="POST", body="", bodyArgs="", hostPort=""):
+    def _toHeaders(self, hs):
+        headers = {}
+        for hv in hs.split(";"):
+            hi = hv.find(":")
+            if hi > 0:
+                h, v = hv[0:hi].strip(), hv[hi + 1:].strip()
+                if len(h) > 0:
+                    headers[h] = v
+        return headers
+    
+    def sendHttpRequest(self, command="POST", url="", header="", body="", bodyArgs="", hostPort=""):
         if bodyArgs != "":  
             body = self.__replaceArgStr(body, bodyArgs)
-        h = {}
+        h = self._toHeaders(header)
         if hostPort != "":
             hosts, path = self.__splitUrl(url)
             h['Host'] = hosts.split(":")[0]
@@ -92,7 +102,7 @@ class HttpToolBase:
         except:
             return resp
 
-    def sendHttpsRequst(self, url, body, command=None, headers={}, isRespHeader=False, certFile=None):
+    def doHttpsRequest(self, url, body, command=None, headers={}, isRespHeader=False, certFile=None):
         import httplib
         import socket
         import ssl
@@ -136,7 +146,7 @@ class HttpToolBase:
                 httpsConn.close
 
     curlcmd = CurlCmdWrapper()
-    def curlHttpRequest(self, url, body, command , headers, isRespHeader, sslVersion= -1):
+    def curlHttpRequest(self, url, body, command , headers, isRespHeader, sslVersion=-1):
         headers = toJsonObj(headers)
         command = command.upper()
         isRespHeader = str(isRespHeader).lower() == "true"
@@ -150,7 +160,7 @@ class HttpToolBase:
             sslVersion=int(sslVersion))
 
 @cloudModule(urlParam={"t":'textarea'}, param={"t":'textarea'}, svnPath={"t":'textarea'}, urlParam2={"t":'textarea'}, jsonStr={"t":'textarea'}, jsonStr2={"t":'textarea'},
-    body={"t":'textarea'},
+    header={"t":'textarea'}, body={"t":'textarea'},
     urlParamToJson={'desp':"convert url parameter to json"}, jsonToUrlParam={'desp':'convert json to url parameter'})
 class HttpToolServer(HttpToolBase):
     pass

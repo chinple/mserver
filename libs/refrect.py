@@ -109,7 +109,7 @@ class DynamicLoader:
         for clsName in dir(module):
             obj = getattr(module, clsName)
             if hasattr(obj, "__name__") and not importToList.__contains__(obj):
-                if className == None:
+                if className is None:
                     importToList.append(obj)
                 elif obj.__name__ == className:
                     importToList.append(obj)
