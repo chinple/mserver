@@ -404,6 +404,21 @@ class ObjHandler:
                     rHandler is not None and not rHandler.handlers.__contains__(handleUrl):
                 rHandler.addHandler(handleUrl, obj)
 
+        # set rely and setup
+        for objName in self.objs:
+            obj = self.objs[objName]
+            if obj['info'].__contains__('imports'):
+                for key in obj['info']['imports'].split(","):
+                    try:
+                        refobjName, prop = key.split(".")
+                        refprop = self.objs[refobjName]['obj'].__dict__[prop]
+                    except:
+                        raise Exception("No prop found: %s" % key)
+                    obj['obj'].__dict__[prop] = refprop
+
+            if hasattr(obj['obj'], '__setup__'):
+                getattr(obj['obj'], '__setup__')()
+
     def __addObj(self, objCls, moduleInfo):
         objName = objCls.__name__
         if not self.objs.__contains__(objName):

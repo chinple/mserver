@@ -7,7 +7,7 @@ from server.cproxy import LogHttpHandle
 from cserver import cloudModule
 from server.chandle import parseRequestParam
 
-@cloudModule(handleUrl="/")
+@cloudModule(handleUrl="/", proxyConfig={"t":'textarea'})
 class LogHttpProxy(LogHttpHandle):
     urlmockdata = None
     def addUrlMock(self, url, param, resp, isdelete='false'):

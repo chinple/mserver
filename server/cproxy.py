@@ -15,8 +15,7 @@ class ProxyHttpHandle:
 
     def __init__(self, poolSize=512):
         self.hostIp = {}
-        self.pathIp = {}
-        self.isEnablePath = False
+        self.pathIp = None
         self.isMock = True
         self.reloadProxyConfig()
         from multiprocessing.pool import ThreadPool
@@ -35,7 +34,7 @@ class ProxyHttpHandle:
         if tryGet(headers, "http-from", None) != self.localHosts:
             try:
                 # get by path
-                ps = self.__getPathProxy__(path) if self.isEnablePath else None
+                ps = self.__getPathProxy__(path) if self.pathIp else None
                 if ps is None:  # get by host
                     ip = headers["host"].lower()
                     ps = ip.split(":")
@@ -155,8 +154,9 @@ class ProxyHttpHandle:
     def __addProxy(self, host, toIp, toPort, toHost):
         h = host.lower()
         if h[0] == "/":
+            if self.pathIp is None:
+                self.pathIp = {}
             self.pathIp[h] = {"ip":toIp, "port":toPort, 'host':toHost}
-            self.isEnablePath = True
         else:
             self.hostIp[h] = {"ip":toIp, "port":toPort, 'host':toHost}
 
