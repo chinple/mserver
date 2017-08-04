@@ -17,6 +17,7 @@ class ProxyHttpHandle:
         self.hostIp = {}
         self.pathIp = None
         self.isMock = True
+        self.isDebugMode = False
         self.reloadProxyConfig()
         from multiprocessing.pool import ThreadPool
         self.logPool = ThreadPool(poolSize)
@@ -31,7 +32,7 @@ class ProxyHttpHandle:
 
     def __getProxyInfo__(self, headers, address, path):
         ip, port, host = "", 80, ""
-        if tryGet(headers, "http-from", None) != self.localHosts:
+        if tryGet(headers, "cfrom", None) != self.localHosts:
             try:
                 # get by path
                 ps = self.__getPathProxy__(path) if self.pathIp else None
@@ -45,14 +46,14 @@ class ProxyHttpHandle:
                 if host is None:
                     host = ip
             except:
-                slog.warn("Not found proxy: %s \t%s" % (ip, path))
+                if self.isDebugMode: slog.warn("Not found proxy: %s \t%s" % (ip, path))
         if ip == "":
-            slog.error("No proxy hosts: %s" % headers)
+            if self.isDebugMode: slog.error("No proxy hosts: %s" % headers)
             raise ProxyHttpHandle.NoHostException()
         return ip, port, host
 
     def __getProxyHeader(self, headers, host):
-        pHeaders = {"http-from":self.localHosts}
+        pHeaders = {"cfrom":self.localHosts, 'origin':headers['host']}
         for h in headers:
             try:
                 v = headers[h]
@@ -69,9 +70,9 @@ class ProxyHttpHandle:
 
         httpServ = HTTPConnection(ip, port)
         httpServ.connect()
-        reqHeader = self.__getProxyHeader(reqObj.headers, host)
-        httpServ.request(reqObj.command, p, bbody, reqHeader)
-        return reqHeader, httpServ.getresponse()
+        preqHeader = self.__getProxyHeader(reqObj.headers, host)
+        httpServ.request(reqObj.command, p, bbody, preqHeader)
+        return preqHeader, httpServ.getresponse()
 
     def __sendResponse(self, reqObj , status, respHeader, body):
         CServerHandler.sendHeaderCode(reqObj, status)
@@ -113,11 +114,11 @@ class ProxyHttpHandle:
             self.logPool.apply_async(self.__analyzeSession__,
                 args=(isMock, reqObj.command, reqPath, reqParam, respBody, reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader))
 
-    def setMock(self, isMock=""):
-        if isMock != "":
-            self.isMock = str(isMock).lower() == "true"
+    def setMock(self, isMock="", isDebugMode=""):
+        self.isMock = str(isMock).lower() == "true"
+        self.isDebugMode = str(isDebugMode).lower() == "true"
 
-    def reloadProxyConfig(self, proxyConfig="proxy.conf"):
+    def reloadProxyConfig(self, proxyConfig="localhost=127.0.0.1"):
         # host = toIp toHost:toPort
         try:
             proxyConfig = open(proxyConfig).read()
@@ -182,6 +183,7 @@ class LogHttpHandle(ProxyHttpHandle):
 # Configuration setting
 [proxyLog]
 logFolder  = .
+logNameHasOrigin = false
 fromIps    =  127.0.0.1,127.0.0.2
 pathStartswith = /ajax,/interface
 pathEndswith   = 
@@ -190,12 +192,14 @@ pathEndswith   =
         ProxyHttpHandle.__init__(self)
         from cserver import cprop
         self.__setFromIpLogPath__(cprop.getVal("proxyLog", "logFolder", "."), cprop.getVal("proxyLog", "fromIps", "."),
-            cprop.getVal("proxyLog", "pathStartswith", "."), cprop.getVal("proxyLog", "pathEndswith", "."))
+            cprop.getVal("proxyLog", "pathStartswith", "."), cprop.getVal("proxyLog", "pathEndswith", "."), cprop.getBool("proxyLog", "logNameHasOrigin", 'true'))
     # log by ip
-    def __setFromIpLogPath__(self, logFolder, fromIps, pathStartswith, pathEndswith):
+    def __setFromIpLogPath__(self, logFolder, fromIps, pathStartswith, pathEndswith, logNameHasOrigin):
         self.logFolder = logFolder
         self.pathStartswith = pathStartswith.split(",")
         self.pathEndswith = pathEndswith.split(",")
+        self.logNameHasOrigin = logNameHasOrigin
+
         ips = []
         for ip in fromIps.split(","):
             if ip.strip() != "":
@@ -207,6 +211,13 @@ pathEndswith   =
             import os
             os.system("mkdir -p %s/%s" % (logFolder, ip))
 
+    def resetProxyLogrule(self, pathStartswith="", pathEndswith=""):
+        if pathStartswith.strip() != "":
+            self.pathStartswith = pathStartswith.split(",")
+        if pathEndswith.strip() != "":
+            self.pathEndswith = pathEndswith.split(",")
+        return self.pathStartswith, self.pathEndswith
+
     def __isLogResponse__(self, reqPath, reqParam, respBody):
         for p in self.pathStartswith:
             if reqPath.startswith(p):
@@ -216,18 +227,20 @@ pathEndswith   =
                 return True
         return False
 
-    def getHostLog(self, hostInfo):
+    def __getHostLog__(self, hostInfo):
         return logManager.getLog(hostInfo, "%s/%s.log" % (self.logFolder, hostInfo), logFormat='[%(asctime)s] %(message)s')
 
-    def __analyzeSession__(self, isMock, isPost, reqPath, reqParam, respBody,
-            reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader):
+    def __analyzeSession__(self, isMock, command, reqPath, reqParam, respBody, reqTime, respTime, respStatus,
+            reqAddress, reqHeader, respHeader):
         host, ip = reqHeader['host'], reqAddress[0]
-        if self.fromIps.__contains__(ip):
+        if self.fromIps is not None and self.fromIps.__contains__(ip):
             hostInfo = "%s/%s" % (ip, host)
+        elif self.logNameHasOrigin:
+            origin = tryGet(reqHeader, "origin", "")
+            hostInfo = host if origin == "" else origin
         else:
             hostInfo = host
 
         isLogResp = self.__isLogResponse__(reqPath, reqParam, respBody)
-        reqInfo = self.__getSimpleSession__(isLogResp, isMock, isPost, reqPath, reqParam, respBody,
-            reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader)
-        self.getHostLog(hostInfo).info(reqInfo)
+        reqInfo = self.__getSimpleSession__(isLogResp, isMock, command, reqPath, reqParam, respBody, reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader)
+        self.__getHostLog__(hostInfo).info(reqInfo)

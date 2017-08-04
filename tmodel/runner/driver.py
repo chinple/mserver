@@ -299,7 +299,7 @@ class GroupTestDriver(BaseDriver):
 
         self.tdriver.tc.setRunCase(runMode='run')
         self.tdriver.tc.setRunLog(self.tdriver.logFilePath)
-        for gi in range(len(groups)):
+        for gi in range(len(groups)):  # merge logs
             with open("group_%s.log" % gi) as glog:
                 while True:
                     l = glog.readline()

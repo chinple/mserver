@@ -6,7 +6,7 @@ Created on 2015-8-19
 '''
 
 from cserver import cloudModule
-from server.chandle import parseRequestParam
+from server.chandle import parseRequestParam, tryGet
 from libs.objop import ObjOperation, StrOperation
 from libs.tvg import TValueGroup
 from server.cclient import curl, jsonToUrlValue
@@ -86,70 +86,9 @@ class HttpToolBase:
                 if len(h) > 0:
                     headers[h] = v
         return headers
-    
-    def sendHttpRequest(self, command="POST", url="", header="", body="", bodyArgs="", hostPort=""):
-        if bodyArgs != "":  
-            body = self.__replaceArgStr(body, bodyArgs)
-        h = self._toHeaders(header)
-        if hostPort != "":
-            hosts, path = self.__splitUrl(url)
-            h['Host'] = hosts.split(":")[0]
-            url = hostPort + path
-        resp = curl(url, body, command=command, logHandler=plog.info, ** h)
-
-        try:
-            return toJsonObj(resp)
-        except:
-            return resp
-
-    def doHttpsRequest(self, url, body, command=None, headers={}, isRespHeader=False, certFile=None):
-        import httplib
-        import socket
-        import ssl
-        httpsConn = None    
-        certFile = None
-
-        hosts, path = self.__splitUrl(url)
-        try:
-            httpsConn = httplib.HTTPSConnection(hosts)
-            sock = socket.create_connection((httpsConn.host, httpsConn.port))
-            try:
-                httpsConn.sock = ssl.wrap_socket(sock, ca_certs=certFile, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_SSLv23)
-            except ssl.SSLError:
-                try:
-                    httpsConn.sock = ssl.wrap_socket(sock, ca_certs=certFile, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_SSLv2)
-                except ssl.SSLError:
-                    try:
-                        httpsConn.sock = ssl.wrap_socket(sock, ca_certs=certFile, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_TLSv1)
-                    except ssl.SSLError:
-                        try:
-                            httpsConn.sock = ssl.wrap_socket(sock, ca_certs=certFile, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_SSLv3)
-                        except Exception as ex:
-                            slog.info("ssl version %s: %s" % (ex, url))      
-
-            httpsConn.request(command, path, body, headers)
-            res = httpsConn.getresponse()
-
-            resHeaders = {}
-            for k, v in res.getheaders():
-                resHeaders[k] = v
-            body = res.read()
-            try:
-                body = toJsonObj(body)
-            except:pass
-            if isRespHeader:
-                return resHeaders, body
-            else:
-                return body
-        finally:
-            if httpsConn:
-                httpsConn.close
 
     curlcmd = CurlCmdWrapper()
-    def curlHttpRequest(self, url, body, command , headers, isRespHeader, sslVersion=-1):
-        headers = toJsonObj(headers)
-        command = command.upper()
-        isRespHeader = str(isRespHeader).lower() == "true"
+    def __curlHttpRequest(self, url, body, command , headers, isRespHeader, sslVersion):
         isFormRequest = command.__contains__("FORM")
         if isFormRequest:
             command, body = command.replace("FORM", ''), toJsonObj(body)
@@ -158,6 +97,69 @@ class HttpToolBase:
                 body[f] = self.curlcmd.makeFormValue(f, value, filetype=None)
         return self.curlcmd.curlByCmd(url, body, command, isFormRequest, headers, isRespHeader, isLogResp=False, logHandler=slog.info,
             sslVersion=int(sslVersion))
+
+    def sendHttpRequest(self, command="POST", url="", header="", body="",
+            bodyArgs="{0},{1}", reqsetting="isRespHeader:true;sslVersion:-1"):
+        command = command.upper()
+        if bodyArgs != "":  
+            url = self.__replaceArgStr(url, bodyArgs)
+            body = self.__replaceArgStr(body, bodyArgs)
+        h = self._toHeaders(header)
+        reqsetting = self._toHeaders(reqsetting)
+
+        if command.__contains__("https") or command.__contains__("FORM") or command.__contains__("CURL"):
+            command = command.replace("CURL", '')
+            resp = self.__curlHttpRequest(url, body, command, h,
+                tryGet(reqsetting, 'isRespHeader', 'false')=='true', tryGet(reqsetting, 'sslVersion', '-1'))
+        else:
+            resp = curl(url, body, command=command, logHandler=plog.info, ** h)
+        try:
+            return toJsonObj(resp)
+        except:
+            return resp
+
+#     def doHttpsRequest(self, url, body, command=None, headers={}, isRespHeader=False, certFile=None):
+#         import httplib
+#         import socket
+#         import ssl
+#         httpsConn = None    
+#         certFile = None
+# 
+#         hosts, path = self.__splitUrl(url)
+#         try:
+#             httpsConn = httplib.HTTPSConnection(hosts)
+#             sock = socket.create_connection((httpsConn.host, httpsConn.port))
+#             try:
+#                 httpsConn.sock = ssl.wrap_socket(sock, ca_certs=certFile, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_SSLv23)
+#             except ssl.SSLError:
+#                 try:
+#                     httpsConn.sock = ssl.wrap_socket(sock, ca_certs=certFile, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_SSLv2)
+#                 except ssl.SSLError:
+#                     try:
+#                         httpsConn.sock = ssl.wrap_socket(sock, ca_certs=certFile, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_TLSv1)
+#                     except ssl.SSLError:
+#                         try:
+#                             httpsConn.sock = ssl.wrap_socket(sock, ca_certs=certFile, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_SSLv3)
+#                         except Exception as ex:
+#                             slog.info("ssl version %s: %s" % (ex, url))      
+# 
+#             httpsConn.request(command, path, body, headers)
+#             res = httpsConn.getresponse()
+# 
+#             resHeaders = {}
+#             for k, v in res.getheaders():
+#                 resHeaders[k] = v
+#             body = res.read()
+#             try:
+#                 body = toJsonObj(body)
+#             except:pass
+#             if isRespHeader:
+#                 return resHeaders, body
+#             else:
+#                 return body
+#         finally:
+#             if httpsConn:
+#                 httpsConn.close
 
 @cloudModule(urlParam={"t":'textarea'}, param={"t":'textarea'}, svnPath={"t":'textarea'}, urlParam2={"t":'textarea'}, jsonStr={"t":'textarea'}, jsonStr2={"t":'textarea'},
     header={"t":'textarea'}, body={"t":'textarea'},

@@ -255,7 +255,7 @@ class FileHandler:
         self.__initCtypes()
 
     def __initCtypes(self):
-        self.addContentType("text/%s", 'xml', "css", 'xsl', 'ini', 'in', 'txt', 'py', 'cpp', 'java', 'md')
+        self.addContentType("text/%s", 'xml', "log", "css", 'xsl', 'ini', 'in', 'txt', 'py', 'cpp', 'java', 'md')
         self.addContentType("text/html", 'htm', 'html')
         self.addContentType("application/x-javascript", 'js')
         self.addContentType("application/x-compressed", 'rar', 'zip')

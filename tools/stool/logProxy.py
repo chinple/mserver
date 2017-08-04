@@ -13,12 +13,15 @@ class LogHttpProxy(LogHttpHandle):
     def addUrlMock(self, url, param, resp, isdelete='false'):
         if self.urlmockdata is None: self.urlmockdata = {}
         if isdelete == "true":
-            self.urlmockdata.__delitem__(url)
+            try:
+                self.urlmockdata.__delitem__(url)
+            except:pass
         else:
             self.urlmockdata[url] = {'p':parseRequestParam(param), 'd':resp}
         return self.urlmockdata.keys()
 
     def _getMockkey(self, reqPath, reqParam):
+        reqPath = reqPath.split("?")[0]
         if self.urlmockdata.__contains__(reqPath):
             param = parseRequestParam(reqParam)
             urlmock = self.urlmockdata[reqPath]
@@ -38,11 +41,7 @@ class LogHttpProxy(LogHttpHandle):
         urlmmock = self._getMockkey(reqPath, reqParam)
         return urlmmock['d']
 
-    def __analyzeSession__(self, isMock, isPost, reqPath, reqParam, respBody,
-            reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader):
-        self.getHostLog("requestHeader").info(str(dict(reqHeader)))
-        LogHttpHandle.__analyzeSession__(self, isMock, isPost, reqPath, reqParam, respBody, reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader)
-
-if __name__ == "__main__":
-    from cserver import servering
-    servering(" ")
+    def __analyzeSession__(self, isMock, command, reqPath, reqParam, respBody, reqTime, respTime, respStatus,
+            reqAddress, reqHeader, respHeader):
+        self.__getHostLog__("requestHeader").info(str(dict(reqHeader)))
+        LogHttpHandle.__analyzeSession__(self, isMock, command, reqPath, reqParam, respBody, reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader)

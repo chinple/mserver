@@ -55,9 +55,7 @@ class TestLoader:
 
         self.curDir = mtArgs.dir
         self.propConf = mtArgs.prop
-
-#        self.chost = mtArgs.chost
-#        self.cport = mtArgs.cport
+        self.logServer = mtArgs.logServer
 
         self.smtp = mtArgs.smtp
         self.sender = mtArgs.sender
@@ -94,7 +92,7 @@ class TestLoader:
     def report(self, runInfo):
         from tmodel.runner.logsummary import SummaryReport
         sr = SummaryReport()
-        sr.analyzeLogs(self.product, self.version, self.environment, runInfo)
+        sr.setReport(self.product, self.version, self.environment, runInfo, self.logServer, self.logFilePath)
         if self.smtp.strip() != "":
             sr.sendEmail(self.smtp, self.smtpLogin, self.sender, self.receiver)
 
@@ -133,16 +131,16 @@ Example:
     ("pergroup", "pergroupNum, run pergroupNum test cases in many groups when not using group", 0, "int"),
     ("isbyname", "isbyname: true means group represent test case name reg otherwise search key word reg", "false", 'bool'),
     ("timeout", "grouptimeout, set timeout(seconds) for every group when run cases in groups by asynchronous thread", 0, "int"),
+    ("logServer", "log server of ctool"),
 
     ("code", "codeFile"), ("graph", "graphPath"),
-    ("base", "baseClass", "TestCaseBase"),
-    ("namespace", "namespace", "mtestGeneratedCode"),
+    ("base", "baseClass such as TestCaseBase", ""),
+    ("namespace", "namespace such as mtestGeneratedCode", ""),
     
     ("smtp", "smtpAddress, such as mail.163.com:465"),
     ("sender", "mail sender"),
     ("receiver", "mail receiver, such as a@qq.com;b@163.com"),
     ("smtpLogin", "such as:account/password, base64encoding"),
-    ("logServer", "log server of ctool"),
 
     ("product", "product information, such as product 1.0"),
     ("version", "product version, such as version 1.0"),

@@ -4,11 +4,11 @@ Created on 2016-10-8
 @author: chinple
 '''
 from tmodel.model.casemodel import MTConst
-import re
 import time
 from libs.objop import ObjOperation
 from libs.syslog import slog
 import base64
+import os
 
 class LogAnalyzer:
     def __init__(self):
@@ -43,6 +43,17 @@ class LogAnalyzer:
 </table>'''
         self.subjectTemplate = '{product} Test Report({passPercent}%: {passed} passed, {failed} failed; {actTime} min: {span})'
 
+    def uploadTestlogs(self, logServer, logfiles):
+        self.loglinks = []
+        if logServer != "":
+            for logfile in logfiles:
+                if os.path.exists(logfile):
+                    filename = time.strftime("test-%Y%m%d-%H%M%S") + logfile
+                    upcmd = 'curl "http://%s/fileupload/?filename=%s&folder=testlog" -F "upload=@%s"' % (logServer, filename, logfile)
+                    slog.info(upcmd)
+                    os.system(upcmd)
+                    self.loglinks.append('<a href="http://%s/testlog/%s">%s</a>' % (logServer, filename, logfile))
+
     def __makeTestSummary(self, totalNum, totalTime, passedNum, failedNum, notRunNum, cases):
         simpleSum = '\r\nTotal %s, %sm:\r\n\tPassed: %s + Failed: %s + NotRun: %s' % (totalNum, totalTime, passedNum, failedNum, notRunNum)
         leftRes = totalNum - passedNum - failedNum - notRunNum
@@ -71,7 +82,7 @@ class LogAnalyzer:
 
         simpleSum, summary = self.__makeTestSummary(totalNum, totalTime, passedNum, failedNum, notRunNum, runInfo['cases'])
 
-        historyResGraph, logAttachLink = "", ""
+        historyResGraph, logAttachLink = "", " &nbsp;".join(self.loglinks)
     
         subject = self.subjectTemplate.format(product=product, version=version, env=environment,
             passed=passedNum, failed=failedNum, passPercent=passPercent, failPercent=failPercent,
@@ -81,63 +92,57 @@ class LogAnalyzer:
             passed=passedNum, failed=failedNum, passPercent=passPercent, failPercent=failPercent,
             inScope=inScope, notRun=notRunNum, total=totalNum, time=totalTime, actTime=actTime, span=timeSpan,
             subject=subject, color=bgcolor, logs=logAttachLink, stability=historyResGraph, simpleSum=simpleSum, summary=summary)
-        
+
         return subject, htmlContent
 
     def __addCase(self, caseName, resCode, resTime):
         self.caseResult[resCode][caseName] = resTime
 
-    def analyzeRuninfo(self, logFile):
-
-        xmlCaseNameReg = '.*<TestCase casename="([^ |^\t]+ ).*" param='
-        caseNameReg = "<TestCase>  \[casename\] ([^ |^\t]+ ).*"
-
-        xmlCaseResReg = '\t\t<Result casename="([^ |^\t]+)" *rescode="([0-9]+)" *result="([A-Z|a-z]+)" *time="([0-9|.]+)"/>'
-        caseResReg = "  <Result>.*\[casename\] ([^ |^\t]+) \[rescode\] ([0-9]+).*\[result\] ([A-Z|a-z]+).*"
-
-        isXmlLog = None
-        caseName = ""
-        with open(logFile) as fh:
-            while True:
-                curStr = fh.readline()
-                if curStr == "":
-                    break
-                elif caseName == "":
-                    if isXmlLog or isXmlLog is None:
-                        caseMatch = re.match(xmlCaseNameReg, curStr)
-                    if not isXmlLog or isXmlLog is None:
-                        caseMatch = re.match(caseNameReg, curStr)
-
-                    if caseMatch is not None:
-                        caseName = caseMatch.groups()[0]
-                else:
-                    resMatch = re.match(xmlCaseResReg if isXmlLog else caseResReg, curStr)
-                    if resMatch != None:
-                        resGroup = resMatch.groups()
-                        resCode = int(resGroup[1])
-                        try:
-                            resTime = float(resGroup[3])
-                        except:
-                            resTime = 0
-                            timeMatch = re.match('.*\[time\] ([0-9|.]+) .*', curStr)
-                            if timeMatch != None:
-                                resTime = float(timeMatch.groups()[0])
-
-                        self.__addCase(caseName, resCode, resTime)
-                        caseName = ""
+#     def parseLogFile(self, logFile):
+# 
+#         xmlCaseNameReg = '.*<TestCase casename="([^ |^\t]+ ).*" param='
+#         caseNameReg = "<TestCase>  \[casename\] ([^ |^\t]+ ).*"
+# 
+#         xmlCaseResReg = '\t\t<Result casename="([^ |^\t]+)" *rescode="([0-9]+)" *result="([A-Z|a-z]+)" *time="([0-9|.]+)"/>'
+#         caseResReg = "  <Result>.*\[casename\] ([^ |^\t]+) \[rescode\] ([0-9]+).*\[result\] ([A-Z|a-z]+).*"
+# 
+#         isXmlLog = None
+#         caseName = ""
+#         with open(logFile) as fh:
+#             while True:
+#                 curStr = fh.readline()
+#                 if curStr == "":
+#                     break
+#                 elif caseName == "":
+#                     if isXmlLog or isXmlLog is None:
+#                         caseMatch = re.match(xmlCaseNameReg, curStr)
+#                     if not isXmlLog or isXmlLog is None:
+#                         caseMatch = re.match(caseNameReg, curStr)
+# 
+#                     if caseMatch is not None:
+#                         caseName = caseMatch.groups()[0]
+#                 else:
+#                     resMatch = re.match(xmlCaseResReg if isXmlLog else caseResReg, curStr)
+#                     if resMatch != None:
+#                         resGroup = resMatch.groups()
+#                         resCode = int(resGroup[1])
+#                         try:
+#                             resTime = float(resGroup[3])
+#                         except:
+#                             resTime = 0
+#                             timeMatch = re.match('.*\[time\] ([0-9|.]+) .*', curStr)
+#                             if timeMatch != None:
+#                                 resTime = float(timeMatch.groups()[0])
+# 
+#                         self.__addCase(caseName, resCode, resTime)
+#                         caseName = ""
 
 class SummaryReport:
     def __init__(self):
         self.la = LogAnalyzer()
 
-    def analyzeLogs(self, product, version, environment, runInfo, logfiles=None):
-        if logfiles is not None:
-            for f in logfiles:
-                try:
-                    self.la.parseLogFile(f)
-                except Exception as ex:
-                    slog.warn("Fail to parse log file %s: %s" % (f, ex))
-
+    def setReport(self, product, version, environment, runInfo, logServer, logfiles):
+        self.la.uploadTestlogs(logServer, logfiles)
         subject, htmlContent = self.la.makeHtmlSummary(product, version, environment, runInfo)
         self.subject = subject
         self.htmlContent = htmlContent

@@ -18,8 +18,7 @@ class ServerDriver:
         self.cserviceInfo.append((moduleCls, handleUrl, moduleInfo))
 
     def startService(self):
-        self.__registerService(self.__getLocalExIp(), self.ports)
-
+        self.__registerService(self.__getLocalExIp(), self.ports, self.initMethods)
         from server.claunch import launchHttpServer
         launchHttpServer(self._serverArgs, self.ports)
 
@@ -29,13 +28,13 @@ class ServerDriver:
             return socket.gethostbyname_ex(socket.gethostname())[2][0]
         except:return ""
 
-    def __registerService(self, exip, ports):
+    def __registerService(self, exip, ports, initMethods):
         from libs.syslog import slog
         slog.warn("%s:%s register to %s with %s" % (exip, ", ".join([str(p) for p in ports]), self.regServer, self.regName))
         if self.regServer is not None:
             from server.cclient import curlCservice
-            curlCservice(self.regServer, 'CServiceTool/RegistServer',
-                hostport="%s:%s" % (exip, ports[0]), serverName=self.regName)
+            curlCservice(self.regServer, 'CServiceTool/registServer',
+                hostport="%s:%s" % (exip, ports[0]), serverName=self.regName, initMethods=initMethods)
 
     def setDriverByArgs(self, args):
         from libs.objop import ArgsOperation
@@ -54,6 +53,7 @@ class ServerDriver:
         self.regServer = cArgs.regServer
         self.regName = cArgs.regName
         self.ports = [8089] if len(cArgs.ports) == 0 else cArgs.ports
+        self.initMethods = cArgs.initMethods
         host, port = "", int(self.ports[0])
         self._serverArgs = (host, port, cArgs.timeout, cArgs.isCpuPriority, cArgs.webroot, cArgs.mainpage, cArgs.uploadFolder,
             cArgs.servicePath, self.cserviceInfo, self.cserviceProxy, cArgs.stubFiles, cArgs.processes, cArgs.setProcessLog)
@@ -70,6 +70,7 @@ class ServerDriver:
     ("o", "timeout", "timeout", 5, "float"),
 
     ("p", "ports", "http ports, such as -p 80 -p 8080", [], "list"),
+    ("initMethods", "init methods by ctool, such as 'ClassName.methodName1,ClassName.methodName2", ""),
     ("isCpuPriority", "CPU priority: request handle by process (logs may lost) if true, otherwise request handle by threads", False, "bool"),
     ("processes", "processes launched: for Linux fork process, for windows create sub process", 1, "int"),
     ("setProcessLog", "when forking process, set different log name for each process if true", False, "bool"),

@@ -23,6 +23,7 @@ cprop = sdriver.cprop
 def cloudModule(handleUrl=None, **moduleInfo):
     # @cloudModule, mark a class as a service see @SampleServerApi
     # imports prop from other obj imports="A.b", after created call method: __setup__
+    # proxyConfig={"t":'textarea'}
     def __cloudMiddleFun(moduleCls):
         sdriver.addService(moduleCls, handleUrl, moduleInfo)
         return moduleCls
