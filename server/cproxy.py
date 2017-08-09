@@ -237,7 +237,7 @@ pathEndswith   =
             hostInfo = "%s/%s" % (ip, host)
         elif self.logNameHasOrigin:
             origin = tryGet(reqHeader, "origin", "")
-            hostInfo = host if origin == "" else origin
+            hostInfo = host if origin == "" else ("%s_%s" % (origin, host))
         else:
             hostInfo = host
 
