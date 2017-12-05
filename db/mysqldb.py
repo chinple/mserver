@@ -22,7 +22,10 @@ class MysqldbConn(SqlConnBase):
                     if isFethall:
                         res = c.fetchall()
                 finally:
-                    c.close()
+                    if isFethall:
+                        c.close()
+                    else:
+                        return c
             else:
                 c = self.conn.cursor()
                 if dbName is not None: c.execute("use %s" % dbName)

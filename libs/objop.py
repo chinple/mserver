@@ -33,6 +33,20 @@ class ObjOperation:
             h(p, k, v)
 
     @staticmethod
+    def findValByCondition(obj, condHandle=lambda val, index:True, valHandle=lambda val, index:True, existFound=True, maxRange=100):
+        vals = None if existFound else []
+        for index in range(0, maxRange):
+            try:
+                if condHandle(obj, index):
+                    if existFound:
+                        return valHandle(obj, index)
+                    else:
+                        vals.append(valHandle(obj, index))
+            except:
+                break
+        return vals
+
+    @staticmethod
     def jsonFormat(s, j, isUsePath=False):
         js = {"s":s}
         def fh(p, k, v):

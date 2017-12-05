@@ -31,7 +31,7 @@ class ServerDriver:
     def __registerService(self, exip, ports, initMethods):
         from libs.syslog import slog
         slog.warn("%s:%s register to %s with %s" % (exip, ", ".join([str(p) for p in ports]), self.regServer, self.regName))
-        if self.regServer is not None:
+        if self.regServer != "":
             from server.cclient import curlCservice
             curlCservice(self.regServer, 'CServiceTool/registServer',
                 hostport="%s:%s" % (exip, ports[0]), serverName=self.regName, initMethods=initMethods)
@@ -56,7 +56,7 @@ class ServerDriver:
         self.initMethods = cArgs.initMethods
         host, port = "", int(self.ports[0])
         self._serverArgs = (host, port, cArgs.timeout, cArgs.isCpuPriority, cArgs.webroot, cArgs.mainpage, cArgs.uploadFolder,
-            cArgs.servicePath, self.cserviceInfo, self.cserviceProxy, cArgs.stubFiles, cArgs.processes, cArgs.setProcessLog)
+            cArgs.servicePath, self.cserviceInfo, self.cserviceProxy, cArgs.stubFiles, cArgs.processes, cArgs.setProcessLog, cArgs.debugMode)
         del cArgs
     
     def __getDefine(self):  
@@ -68,6 +68,7 @@ class ServerDriver:
     ("uploadFolder", "upload folder", ""),
     ("m", "mainpage", "home or main page, such as HomePage.html"),
     ("o", "timeout", "timeout", 5, "float"),
+    ("debugMode", "set true, print debug logs", "false"),
 
     ("p", "ports", "http ports, such as -p 80 -p 8080", [], "list"),
     ("initMethods", "init methods by ctool, such as 'ClassName.methodName1,ClassName.methodName2", ""),
@@ -76,7 +77,7 @@ class ServerDriver:
     ("setProcessLog", "when forking process, set different log name for each process if true", False, "bool"),
 
     ("servicePath", "URL path of service", "cservice"),
-    ("s", "regServer", "register server address", None),
-    ("n", "regName", "register server name", None)
+    ("s", "regServer", "register server address", ""),
+    ("n", "regName", "register server name", "")
 )
 

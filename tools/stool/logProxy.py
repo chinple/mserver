@@ -43,5 +43,8 @@ class LogHttpProxy(LogHttpHandle):
 
     def __analyzeSession__(self, isMock, command, reqPath, reqParam, respBody, reqTime, respTime, respStatus,
             reqAddress, reqHeader, respHeader):
-        self.__getHostLog__("requestHeader").info(str(dict(reqHeader)))
-        LogHttpHandle.__analyzeSession__(self, isMock, command, reqPath, reqParam, respBody, reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader)
+        self.__getHostLog__("requestheader").info("%s %s" % (reqPath, dict(reqHeader)))
+        try:
+            LogHttpHandle.__analyzeSession__(self, isMock, command, reqPath, reqParam, respBody, reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader)
+        except Exception as ex:
+            self.__getHostLog__("logerror").info("%s %s" % (reqPath, ex))

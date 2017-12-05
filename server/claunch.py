@@ -52,7 +52,7 @@ def launchHttpServer(serverArgs, ports):
             Thread(target=createHttpServer, name="cserver: %s" % port, args=tuple(sa)).start()
 
 def createHttpServer(host="", port=8089, timeout=None, isCpuPriority=False, webroot=".", mainpage=None, uploadFolder=".",
-        servicePath="cservice", cserviceInfo=[], cserviceProxy=[], stubFiles=(), forkProcess=2, setProcessLog=False):
+        servicePath="cservice", cserviceInfo=[], cserviceProxy=[], stubFiles=(), forkProcess=2, setProcessLog=False, debugMode="true"):
     # create handle
     rHandler = createRouterHandler(webroot, uploadFolder)
     CServerHandler.rHandler = rHandler
@@ -62,6 +62,7 @@ def createHttpServer(host="", port=8089, timeout=None, isCpuPriority=False, webr
     CServerHandler.webroot = os.path.abspath(webroot)
     CServerHandler.mainpage = ("/" + mainpage) if mainpage and mainpage != "" else None
     CServerHandler.uploadFolder = uploadFolder if os.path.exists(uploadFolder) else ""
+    CServerHandler.isDebugMode = str(debugMode).strip().lower() == "true"
 
     # create server
     s = ForkingHTTPServer((host, int(port)), CServerHandler) if isCpuPriority else\

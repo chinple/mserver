@@ -59,6 +59,7 @@ class CServerHandler(BaseHTTPRequestHandler):
     session = None
     redirectPath = None
     maxBodySize = 104857600
+    isDebugMode = True
 
     def __init__(self, *tupleArg, **jsonArg):
         self.server_version = "CSERVER 1.0"
@@ -68,20 +69,31 @@ class CServerHandler(BaseHTTPRequestHandler):
         try:
             BaseHTTPRequestHandler.finish(self)
         except socket.error as ex:
-            self.__handle_close_error(ex)
+            self.__handleCloseError__(ex)
 
-    def __handle_close_error(self, ex):
+    def __handleCloseError__(self, ex):
         self.close_connection = 1
-        try:
-            self.log_error("Close %s for %s", self.requestline, ex)
-        except:
-            self.log_error("Close %s for %s", self, ex)
-        
+        if self.isDebugMode:
+            try:
+                self.log_error("Close %s for %s", self.requestline, ex)
+            except:
+                self.log_error("Close %s for %s", self, ex)
+
     def handle_one_request(self):
         try:
             BaseHTTPRequestHandler.handle_one_request(self)
         except socket.error as ex:
-            self.__handle_close_error(ex)
+            self.__handleCloseError__(ex)
+
+    def do_CONNECT(self):
+        self.__handleNoException(True)
+    def do_OPTIONS(self):
+        self.__handleNoException(True)
+    def do_HEAD(self):
+        self.__handleNoException(True)
+
+    def do_TRACE(self):
+        self.__handleNoException(True)
 
     def do_POST(self):
         self.__handleNoException(True)
@@ -255,7 +267,7 @@ class FileHandler:
         self.__initCtypes()
 
     def __initCtypes(self):
-        self.addContentType("text/%s", 'xml', "log", "css", 'xsl', 'ini', 'in', 'txt', 'py', 'cpp', 'java', 'md')
+        self.addContentType("text/%s;charset=utf-8", 'xml', "log", "css", 'xsl', 'ini', 'in', 'txt', 'py', 'cpp', 'java', 'md')
         self.addContentType("text/html", 'htm', 'html')
         self.addContentType("application/x-javascript", 'js')
         self.addContentType("application/x-compressed", 'rar', 'zip')
@@ -277,7 +289,7 @@ class FileHandler:
                         start, limit = None, None
                     else:
                         fp = parseRequestParam(reqParam)
-                        start, limit = int(tryGet(fp, "start", 0)), int(tryGet(fp, "limit", 1048576))
+                        start, limit = int(tryGet(fp, "start", 0)), int(tryGet(fp, "limit", -1))
                     reqObj.sendFileResponse(path, os.path.getsize(path), self.__getContentType(path), start, limit)
                     return
 
@@ -301,20 +313,29 @@ class FolderHandler:
         if os.path.exists(f):
             if os.path.isdir(f):
                 ftype = tryGet(parseRequestParam(reqParam), "type", 0)
-                if ftype == "json":
-                    reqObj.sendResponse(_jsn.encode(os.listdir(f)))
-                elif ftype == "stat":
+                ff = tryGet(parseRequestParam(reqParam), "f", None)
+                if ff is None:
+                    files = os.listdir(f)
+                else:
+                    ff = ff + "$"
                     files = []
                     for a in os.listdir(f):
-                        p = "%s/%s" % (f, a)
-                        files.append([a, os.path.isdir(p), os.path.getsize(p)])
+                        if re.match(ff, a):
+                            files.append(a)
+                if ftype == "json":
                     reqObj.sendResponse(_jsn.encode(files))
+                elif ftype == "stat":
+                    fs = []
+                    for a in files:
+                        p = "%s/%s" % (f, a)
+                        fs.append([a, os.path.isdir(p), os.path.getsize(p)])
+                    reqObj.sendResponse(_jsn.encode(fs))
                 else:
-                    files = []
-                    files.append('<a href="{1}/{0}">{0}<a>'.format("..", reqPath))
-                    for f in sorted(os.listdir(f)):
-                        files.append('<a href="{1}/{0}">{0}<a>'.format(f, reqPath).replace("//", "/"))
-                    reqObj.sendResponse("<br>".join(files), "text/html")
+                    fs = []
+                    fs.append('<a href="{1}/{0}">{0}<a>'.format("..", reqPath))
+                    for f in sorted(files):
+                        fs.append('<a href="{1}/{0}">{0}<a>'.format(f, reqPath).replace("//", "/"))
+                    reqObj.sendResponse("<br>".join(fs), "text/html")
             else:
                 return "/__file__%s" % reqPath
 

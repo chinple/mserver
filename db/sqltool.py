@@ -13,39 +13,39 @@ from db.filedb import FileDataBase
 class SqlOpTool:
     def __init__(self, isCheckUpdate=True, isSupportDelete=False, isSupportAnySql=False, dbstoreName="dbstore", isMysqldb=True):
         self.conns = {}
-        self.fdb = FileDataBase("./", keyDefines={"configName":"equal"})
-        self.dbConfigs = {}
+        self.fdb = FileDataBase("./", keyDefines={"dbconfig":"equal"})
+        self.dbconfigs = {}
         self.isCheckUpdate = isCheckUpdate
         self.isSupportDelete = isSupportDelete
         self.isSupportAnySql = isSupportAnySql
         self.dbstoreName = dbstoreName
         self.isMysqldb = isMysqldb
         for r in self.fdb.getRecord(self.dbstoreName):
-            self.dbConfigs[r['configName']] = r['config']
+            self.dbconfigs[r['dbconfig']] = r['config']
 
-    def __addConn__(self, configName, host, port, user, passwd):
-        if configName != "":
-            self.dbConfigs[configName] = {'host':host, 'port':int(port), 'user':user, 'passwd':passwd, 'charset':'utf8'}
-            self.fdb.saveRecord(self.dbstoreName, {'configName':configName, 'config':self.dbConfigs[configName]},
+    def __addConn__(self, dbconfig, host, port, user, passwd):
+        if dbconfig != "":
+            self.dbconfigs[dbconfig] = {'host':host, 'port':int(port), 'user':user, 'passwd':passwd, 'charset':'utf8'}
+            self.fdb.saveRecord(self.dbstoreName, {'dbconfig':dbconfig, 'config':self.dbconfigs[dbconfig]},
                 isUpdate=True, isFlush=True)
-        return self.dbConfigs
+        return self.dbconfigs
 
-    def __getConn(self, dbConfig):
-        if self.conns.__contains__(dbConfig):
-            conn = self.conns[dbConfig]
+    def __getConn__(self, dbconfig):
+        if self.conns.__contains__(dbconfig):
+            conn = self.conns[dbconfig]
         else:
             if self.isMysqldb:
                 from db.mysqldb import MysqldbConn
-                conn = SqlConnFactory(MysqldbConn, self.dbConfigs[dbConfig], 1)
+                conn = SqlConnFactory(MysqldbConn, self.dbconfigs[dbconfig], 1)
             else:
                 from db.pysql import PymysqlConn
-                conn = SqlConnFactory(PymysqlConn, self.dbConfigs[dbConfig], 1)
-            self.conns[dbConfig] = conn
+                conn = SqlConnFactory(PymysqlConn, self.dbconfigs[dbconfig], 1)
+            self.conns[dbconfig] = conn
         return conn
 
     def __executeSql__(self, operation="show", fields="*", table="db", dbName="",
-            where="1=1", whereArgs="", affectRows=100, dbConfig="local"):
-        if Sql.isEmpty(dbConfig):
+            where="1=1", whereArgs="", affectRows=100, dbconfig="local"):
+        if Sql.isEmpty(dbconfig):
             return "no db config"
         if Sql.isEmpty(dbName):dbName = None
 
@@ -61,7 +61,7 @@ class SqlOpTool:
         except Exception as ex:
             return ("%s" % ex)
 
-        conn = self.__getConn(dbConfig)
+        conn = self.__getConn__(dbconfig)
 
         if operationType == "select":
             query = "select %s from %s.%s where %s limit %s" % (fields, dbName, table, where, affectRows)
@@ -89,3 +89,17 @@ class SqlOpTool:
             return conn.executeSql(operation, dbName=dbName)
         else:
             return "Bad operation %s" % operation
+
+class BasicSqlTool(SqlOpTool):
+    def __init__(self, isCheckUpdate=True, isSupportDelete=False, isSupportAnySql=False, dbstoreName="dbstore"):
+        SqlOpTool.__init__(self, False, True, True, dbstoreName)
+
+    def addConn(self, dbconfig, host, port, user, passwd):
+        return SqlOpTool.__addConn__(self, dbconfig, host, port, user, passwd)
+
+    def executeSql(self, operation="show", fields="*", table="db", dbName="",
+            where="1=1", whereArgs="", affectRows=100, dbconfig="local", base64Sql=""):
+        if base64Sql is not None and str(base64Sql).strip()!="":
+            import base64
+            operation = base64.decodestring(base64Sql)
+        return SqlOpTool.__executeSql__(self, operation, fields, table, dbName, where, whereArgs, affectRows, dbconfig)

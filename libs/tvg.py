@@ -123,18 +123,6 @@ class TValueGroup:
             xmlTvg.addElement("Property", name=tValue, value=self[tValue])
         return xmlTvg
 
-    def getValByCondition(self, condHandle=lambda val, index:True, valHandle=lambda val, index:True, existFound=True, maxRange=100):
-        vals = None if existFound else []
-        for index in range(0, maxRange):
-            try:
-                if condHandle(self, index):
-                    if existFound:
-                        return valHandle(self, index)
-                    else:
-                        vals.append(valHandle(self, index))
-            except:
-                break
-        return vals
     def saveTo(self, path):
         with codecs.open(path, "w", encoding="utf-8") as f:
             f.writelines(str(self))

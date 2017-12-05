@@ -17,7 +17,7 @@ class ProxyHttpHandle:
         self.hostIp = {}
         self.pathIp = None
         self.isMock = True
-        self.isDebugMode = False
+        self.isDebugMode = CServerHandler.isDebugMode
         self.reloadProxyConfig()
         from multiprocessing.pool import ThreadPool
         self.logPool = ThreadPool(poolSize)
@@ -27,26 +27,25 @@ class ProxyHttpHandle:
 
     def __getPathProxy__(self, path):
         for p in self.pathIp:
-            if path.startswith(p):
-                return self.pathIp[p]
+            if path.startswith(p['p']):
+                return p
 
     def __getProxyInfo__(self, headers, address, path):
         ip, port, host = "", 80, ""
         if tryGet(headers, "cfrom", None) != self.localHosts:
-            try:
-                # get by path
-                ps = self.__getPathProxy__(path) if self.pathIp else None
-                if ps is None:  # get by host
-                    ip = headers["host"].lower()
-                    ps = ip.split(":")
-                    if len(ps) == 2:
-                        ip, port = ps[0], int(ps[1])
-                    ps = self.hostIp[ip]
+            try:  # get by host
+                ip = headers["host"].lower()
+                ps = ip.split(":")
+                if len(ps) == 2:
+                    ip, port = ps[0], int(ps[1])
+                ps = self.hostIp[ip]
                 ip, port, host = ps['ip'], ps['port'], ps['host']
-                if host is None:
-                    host = ip
-            except:
-                if self.isDebugMode: slog.warn("Not found proxy: %s \t%s" % (ip, path))
+            except:  # get by path
+                ps = self.__getPathProxy__(path) if self.pathIp else None
+                if ps is None:
+                    if self.isDebugMode: slog.warn("Not found proxy: %s \t%s" % (ip, path))
+                else:
+                    ip, port, host = ps['ip'], ps['port'], ps['host']
         if ip == "":
             if self.isDebugMode: slog.error("No proxy hosts: %s" % headers)
             raise ProxyHttpHandle.NoHostException()
@@ -114,9 +113,8 @@ class ProxyHttpHandle:
             self.logPool.apply_async(self.__analyzeSession__,
                 args=(isMock, reqObj.command, reqPath, reqParam, respBody, reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader))
 
-    def setMock(self, isMock="", isDebugMode=""):
+    def setMock(self, isMock=""):
         self.isMock = str(isMock).lower() == "true"
-        self.isDebugMode = str(isDebugMode).lower() == "true"
 
     def reloadProxyConfig(self, proxyConfig="localhost=127.0.0.1"):
         # host = toIp toHost:toPort
@@ -156,15 +154,26 @@ class ProxyHttpHandle:
         h = host.lower()
         if h[0] == "/":
             if self.pathIp is None:
-                self.pathIp = {}
-            self.pathIp[h] = {"ip":toIp, "port":toPort, 'host':toHost}
+                self.pathIp = []
+            nph = {"p":h, "ip":toIp, "port":toPort, 'host':toHost}
+            for pi in range(len(self.pathIp)):
+                ph = self.pathIp[pi]
+                if h.startswith(ph['p']):
+                    if ph['p'] == h:self.pathIp[pi] = nph
+                    else:self.pathIp.insert(pi, nph)
+                    return
+            self.pathIp.append(nph)
         else:
             self.hostIp[h] = {"ip":toIp, "port":toPort, 'host':toHost}
 
     def __getSimpleSession__(self, isLogResp, isMock, command,
                 reqPath, reqParam, respBody, reqTime, respTime, respStatus,
             reqAddress, reqHeader, respHeader):
-        host, ip , resp = reqHeader['host'], reqAddress[0], (decodeHttpBody(respHeader, respBody) if isLogResp else "...")
+        try:
+            b = decodeHttpBody(respHeader, respBody)
+        except:
+            b = respBody
+        host, ip , resp = reqHeader['host'], reqAddress[0], (b if isLogResp else "...")
         return "%s %s %s%s%s\n\t%s\n==>[%.3f, %.3f] %s\n" % (ip, command, "MOCK " if isMock else "",
             host, reqPath, reqParam, reqTime, respTime, resp)
 
@@ -236,7 +245,7 @@ pathEndswith   =
         if self.fromIps is not None and self.fromIps.__contains__(ip):
             hostInfo = "%s/%s" % (ip, host)
         elif self.logNameHasOrigin:
-            origin = tryGet(reqHeader, "origin", "")
+            origin = tryGet(reqHeader, "origin", "").replace("http://", "")
             hostInfo = host if origin == "" else ("%s_%s" % (origin, host))
         else:
             hostInfo = host

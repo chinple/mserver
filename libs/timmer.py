@@ -28,3 +28,18 @@ class TimmerOperation:
                 time.sleep(sleepTimeSpan)
         return False
 
+class TimmerJson:
+    def __init__(self):
+        self.tj = {}
+
+    def getKey(self, k):
+        try:
+            v = self.tj[k]
+        except:return
+        if time.time() - v['t'] >= v['m']:
+            self.tj.__delitem__(k)
+        else:
+            return v['v']
+
+    def addKey(self, k, v, maxTime=3600):
+        self.tj[k] = {'t':time.time(), 'v':v, 'm':maxTime}

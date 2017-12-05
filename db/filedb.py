@@ -90,7 +90,7 @@ class FileDataBase:
 
     def __isRecordEqual(self, expRecord, record):
         equalCount = 0
-        for k in expRecord:
+        for k in self.keyDefines.keys() if self.isSignleKey else expRecord:
             try:
                 if self.__isKeyEqual(k, expRecord[k], record[k]):
                     equalCount += 1

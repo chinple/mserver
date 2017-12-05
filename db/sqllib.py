@@ -77,6 +77,15 @@ class SqlConnFactory:
     def getSql(self, opTable, opType=0, isDict=False, fieldDesp="*"):
         return Sql(self, opTable, opType, isDict, fieldDesp)
 
+def _sinjv(v):
+    return str(v).replace("'", "''")
+
+def _sinjtuplev(vs):
+    vsj = []
+    for v in vs:
+        vsj.append(_sinjv(v))
+    return tuple(vsj)
+
 class Sql:
     def __init__(self, connFactory, opTable, opType=0, isDict=False, fieldDesp="*"):
         self.connFactory = connFactory
@@ -109,7 +118,7 @@ class Sql:
         sqlStr = str(self)
         return self.connFactory.executeSql(sqlStr, self.opType == Sql.select, isFethall, isCommit)
 
-    def __str__(self):  # TODO SQL inject
+    def __str__(self):
         _cond = " ".join(self.where)
         _sql = ""
         if _cond != "":
@@ -137,7 +146,10 @@ class Sql:
             isInCond, tv = cond == 'in', type(val)
             if isInCond:
                 if tv == str or tv == unicode:
+                    val = _sinjv(val)
                     val = tuple(val.split(','))
+                else:
+                    val = _sinjtuplev(val)
                 cond = 'in'
                 if len(val) == 0:
                     return self
@@ -145,7 +157,8 @@ class Sql:
                     isInCond, cond, val = False, "=", val[0]
                 else:
                     val = '(%s)' % (((", '%s'" * len(val)) % val)[1:])
-
+            else:
+                val = _sinjv(val)
             if len(self.where) > 0:
                 self.where.append("and" if isAnd else "or")
             self.where.append("%s %s %s " % ("" if isYesCond else " not", name, cond))
@@ -163,32 +176,38 @@ class Sql:
         if not Sql.isEmpty(names):
             self.orders = " order by %s " % names
         return self
+
     def groupBy(self, names):
         if not Sql.isEmpty(names):
             self.groups = " group by %s " % names
         return self
 
-    def beginSubCondition(self):
+    def startCondition(self):
         self.subCondStart = len(self.where)
+        return self
 
-    def endSubCondition(self, isAnd=True):
+    def endCondition(self, isAnd=True):
         if self.subCondStart >= 0:
             if len(self.where) > self.subCondStart:
-                self.where[self.subCondStart] = "(" + self.where[self.subCondStart]
-                self.where.append(" ) ")
+                if self.subCondStart == 0:
+                    self.where[self.subCondStart] = "(" + self.where[self.subCondStart]
+                else:
+                    self.where[self.subCondStart] = ("and" if isAnd else "or") + "("
+                self.where.append(") ")
             self.subCondStart = -1
+        return self
 
-    def appendCondition(self, cond, isAnd=True):
+    def appendCondition(self, cond, args, isAnd=True):
         if cond is not None:
             if len(self.where) > 0:
                 self.where.append("and" if isAnd else "or")
-            self.where.append(cond)
+            self.where.append(cond % (_sinjtuplev(args)))
         return self
 
     def appendValue(self, name, val):
         if val != None:
             self.names.append(name)
-            self.values.append(str(val).replace("'", "''"))
+            self.values.append(_sinjv(val))
         return self
 
     def appendValueByJson(self, jobj):

@@ -110,7 +110,7 @@ class HttpToolBase:
         if command.__contains__("https") or command.__contains__("FORM") or command.__contains__("CURL"):
             command = command.replace("CURL", '')
             resp = self.__curlHttpRequest(url, body, command, h,
-                tryGet(reqsetting, 'isRespHeader', 'false')=='true', tryGet(reqsetting, 'sslVersion', '-1'))
+                tryGet(reqsetting, 'isRespHeader', 'false') == 'true', tryGet(reqsetting, 'sslVersion', '-1'))
         else:
             resp = curl(url, body, command=command, logHandler=plog.info, ** h)
         try:
@@ -166,6 +166,14 @@ class HttpToolBase:
     urlParamToJson={'desp':"convert url parameter to json"}, jsonToUrlParam={'desp':'convert json to url parameter'})
 class HttpToolServer(HttpToolBase):
     pass
+
+@cloudModule()
+class CommonTool:
+    def md5(self, s):
+        import md5
+        m = md5.new()
+        m.update(s)
+        return m.hexdigest()
 
 if __name__ == "__main__":
     from cserver import servering
