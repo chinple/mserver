@@ -65,7 +65,7 @@ class ServerDriver:
 
     ("t", "stubFiles", "python stub files", [], 'list'),
     ("f", "webroot", "Html folder", "NotConfigure"),
-    ("uploadFolder", "upload folder", ""),
+    ("uploadFolder", "upload folder, use path: /fileupload, parameter: filename=, folder=, override=true|false", ""),
     ("m", "mainpage", "home or main page, such as HomePage.html"),
     ("o", "timeout", "timeout", 5, "float"),
     ("debugMode", "set true, print debug logs", "false"),

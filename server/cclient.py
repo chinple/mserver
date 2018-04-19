@@ -60,12 +60,12 @@ class HttpClient:
 
     def __makeHeader__(self, headsInfo):
         headers = {"connection":"keep-alive" if self.keepAlive else 'close',
-               "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
+                "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
                "cookie":self.cookie
             }
         if headsInfo is not None:
             for h in headsInfo:
-                headers[h] = headsInfo[h]
+                headers[h.lower()] = headsInfo[h]
         return headers
 
     def __logRequest__(self, command, path, headers, body):
@@ -79,9 +79,7 @@ class HttpClient:
         if self.logHandler is not None and self.logResp:
             self.logHandler(resp)
 
-    def sendRequest(self, path="/", body=None, command="GET", isReadResp=True, headers=None, isRespHeader=False):
-
-        headers = self.__makeHeader__(headers)
+    def sendRequest(self, path="/", body=None, command="GET", isReadResp=True, headers=None, isRespHeader=False, isCheckStatus=True):
 
         if command == "GET":
             if body != "" and body is not None:
@@ -90,8 +88,9 @@ class HttpClient:
         elif isinstance(body, str):
             body = body.encode()
 
-        self.__logRequest__(command, path, headers, body)
-        self._httpConn.request(command, path, body, headers)
+        hs = self.__makeHeader__(headers)
+        self.__logRequest__(command, path, hs, body)
+        self._httpConn.request(command, path, body, hs)
         response = self._httpConn.getresponse()
 
         if self.isAnalyzeCookie:
@@ -107,7 +106,7 @@ class HttpClient:
             resp = "AsyncRequest: %s" % response.status
 
         self.__logResponse__(resp)
-        if int(response.status / 100) != 2:
+        if isCheckStatus and int(response.status / 100) != 2:
             raise RequstException("Fail(%s) to request %s%s: %s" % (response.status, self.hostport, path, resp))
         if isRespHeader:
             hs = {}
@@ -141,7 +140,7 @@ class HttpClient:
         self._httpConn.close()
 
 def curl(url, body=None, isReadResp=True, logHandler=None, logHeader=False, logResp=False,
-         isRespHeader=False, connTimeout=None, command=None, hasSession=False, **headers):
+         isCheckStatus=True, isRespHeader=False, connTimeout=None, command=None, hasSession=False, **headers):
     url = url.replace("http://", "")
     try:
         i = url.index("/")
@@ -155,7 +154,7 @@ def curl(url, body=None, isReadResp=True, logHandler=None, logHeader=False, logR
     if command is None:
         command = "GET" if body is None else "POST"
     try:
-        return client.sendRequest(path, body, command, isReadResp, headers, isRespHeader)
+        return client.sendRequest(path, body, command, isReadResp, headers, isRespHeader, isCheckStatus)
     finally:
         client.close()
 

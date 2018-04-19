@@ -8,11 +8,16 @@ from mtest import model, scenario, TestModelBase, step, testing
 @model()
 class StatusModelingSample(TestModelBase):
 
-    def __GetArgList__(self, sFrom, sTo):
+    def __getArgList__(self, sFrom, sTo):
         if sFrom == "B":
             return ["Arg1", "Arg2"]
         if sFrom == "C":
             return ["Arg3", "Arg4"]
+
+    def __isAccept__(self, sFrom, sTo, stepArg):
+        if stepArg == 'Arg2':
+            return False
+            
 
     @step('S', 'A')
     def StartToA(self):

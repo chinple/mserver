@@ -6,8 +6,8 @@ Created on 2010-9-28
 '''
 from libs.tvg import TValueGroup
 from libs.objop import ObjOperation
-from tmodel.model.paramgen import CombineWhereParam
 from libs.syslog import slog
+from tmodel.model.paramgen import CombineSingleParam
 
 class TestModeling:
     # edge,condition,condEdge,path,condPath,all
@@ -89,7 +89,7 @@ class TestModeling:
         while True:
             repeatTimes = self.getNextPath(startStepName, testPath)
             if self.isDebug:
-                slog.info("%s:\t%s", repeatTimes, testPath)
+                slog.info("Repeat: %s\t%s", repeatTimes, testPath)
             self.__addPathToArgPathContainer(argPathContainer, testPath, repeatTimes)
 
             startStepName = None
@@ -169,14 +169,14 @@ class TestModeling:
         stepIndexToCombIndex = {}
         isCondCover = self.strategy == "condition"
         isEdgeCover = self.strategy == "edge" or self.strategy == "condEdge" or isCondCover
-        notCondCover = self.strategy == "path" or self.strategy == "edge"
+        notCondCover = self.strategy == "path" or self.strategy == "edge" or self.strategy == 'available'
 
         noNewEdge, stepIndex, combIndex = self.__prepareTestPath(testPath, pathParam, stepIndexList, stepIndexToCombIndex, isEdgeCover, isCondCover)
         if isEdgeCover and noNewEdge:
             return
 
         pathCovered = False
-        stepArg = CombineWhereParam(pathParam, {'combine':stepIndexList, 'strategy':self.strategy}, None)
+        stepArg = CombineSingleParam(pathParam, {'combine':stepIndexList, 'strategy':self.strategy}, None)
         while True:
             pathArg = stepArg.nextParam()
             if pathArg == None:
@@ -198,7 +198,7 @@ class TestModeling:
 
             addCombIndex = ObjOperation.tryGetVal(stepIndexToCombIndex, acceptStepIndex, combIndex)
             if addCombIndex < combIndex:
-                stepArg.Add(addCombIndex)
+                stepArg.toNextParamArg(addCombIndex)
 
         if isEdgeCover and pathCovered:
             self.__coverTestPath(testPath)

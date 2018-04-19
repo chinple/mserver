@@ -5,19 +5,19 @@ Created on 2016-8-29
 '''
 from server.cproxy import LogHttpHandle
 from cserver import cloudModule
-from server.chandle import parseRequestParam
+from server.chandle import parseRequestParam, tryGet
 
 @cloudModule(handleUrl="/", proxyConfig={"t":'textarea'})
 class LogHttpProxy(LogHttpHandle):
     urlmockdata = None
-    def addUrlMock(self, url, param, resp, isdelete='false'):
+    def addUrlMock(self, url, param, resp, status=200, isdelete='false'):
         if self.urlmockdata is None: self.urlmockdata = {}
         if isdelete == "true":
             try:
                 self.urlmockdata.__delitem__(url)
             except:pass
         else:
-            self.urlmockdata[url] = {'p':parseRequestParam(param), 'd':resp}
+            self.urlmockdata[url] = {'p':parseRequestParam(param), 'd':resp, 's':int(status)}
         return self.urlmockdata.keys()
 
     def _getMockkey(self, reqPath, reqParam):
@@ -39,12 +39,17 @@ class LogHttpProxy(LogHttpHandle):
 
     def __getMockResponse__(self, reqPath, reqParam, reqHeader):
         urlmmock = self._getMockkey(reqPath, reqParam)
-        return urlmmock['d']
+        return tryGet(urlmmock, 's', 200), urlmmock['d']
 
     def __analyzeSession__(self, isMock, command, reqPath, reqParam, respBody, reqTime, respTime, respStatus,
             reqAddress, reqHeader, respHeader):
-        self.__getHostLog__("requestheader").info("%s %s" % (reqPath, dict(reqHeader)))
+        self.__getHostLog__("requestheader").info("%s %s" % (reqPath, reqHeader))
         try:
-            LogHttpHandle.__analyzeSession__(self, isMock, command, reqPath, reqParam, respBody, reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader)
+            LogHttpHandle.__analyzeSession__(self, isMock, command, reqPath, reqParam, respBody,
+                reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader)
         except Exception as ex:
-            self.__getHostLog__("logerror").info("%s %s" % (reqPath, ex))
+            try:
+                LogHttpHandle.__analyzeSession__(self, isMock, command, reqPath, reqParam, "... %s" % (ex),
+                    reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader)
+            except Exception as ex:
+                self.__getHostLog__("logerror").info("%s %s" % (reqPath, ex))

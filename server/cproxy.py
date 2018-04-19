@@ -92,8 +92,8 @@ class ProxyHttpHandle:
 
         isMock, reqAddress, respTime = False, reqObj.client_address, time.time()
         if self.isMock and _tryExecute(self.__isMockRquest__, (reqPath, reqParam, reqObj.headers, reqObj.client_address), False):
-            resp = self.__getMockResponse__(reqPath, reqParam, reqObj.headers)
-            isMock, reqHeader, respStatus, respBody = True, reqObj.headers, 200, bytes(resp)
+            respStatus, resp = self.__getMockResponse__(reqPath, reqParam, reqObj.headers)
+            isMock, reqHeader, respBody = True, reqObj.headers, bytes(resp)
             respHeader = [("Content-Length", len(respBody)), ("Content-Type", "text/plan;charset=utf-8")]
         else:
             try:
@@ -111,7 +111,7 @@ class ProxyHttpHandle:
         finally:
             respTime = time.time() - respTime - reqTime
             self.logPool.apply_async(self.__analyzeSession__,
-                args=(isMock, reqObj.command, reqPath, reqParam, respBody, reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader))
+                args=(isMock, reqObj.command, reqPath, reqParam, respBody, reqTime, respTime, respStatus, reqAddress, dict(reqHeader), dict(respHeader)))
 
     def setMock(self, isMock=""):
         self.isMock = str(isMock).lower() == "true"
@@ -168,12 +168,18 @@ class ProxyHttpHandle:
 
     def __getSimpleSession__(self, isLogResp, isMock, command,
                 reqPath, reqParam, respBody, reqTime, respTime, respStatus,
-            reqAddress, reqHeader, respHeader):
-        try:
-            b = decodeHttpBody(respHeader, respBody)
-        except:
-            b = respBody
-        host, ip , resp = reqHeader['host'], reqAddress[0], (b if isLogResp else "...")
+            reqAddress, reqHeader, respHeader, logRespSize=-1, logAllUrl=""):
+        resp = "..."
+        if isLogResp:
+            try:
+                resp = decodeHttpBody(respHeader, respBody)
+            except:
+                resp = respBody
+            if logRespSize > 0 and len(resp) > logRespSize:
+                if not logAllUrl.__contains__(reqPath):
+                    resp = resp[0:logRespSize] + " ..."
+
+        host, ip = reqHeader['host'], reqAddress[0]
         return "%s %s %s%s%s\n\t%s\n==>[%.3f, %.3f] %s\n" % (ip, command, "MOCK " if isMock else "",
             host, reqPath, reqParam, reqTime, respTime, resp)
 
@@ -201,13 +207,16 @@ pathEndswith   =
         ProxyHttpHandle.__init__(self)
         from cserver import cprop
         self.__setFromIpLogPath__(cprop.getVal("proxyLog", "logFolder", "."), cprop.getVal("proxyLog", "fromIps", "."),
-            cprop.getVal("proxyLog", "pathStartswith", "."), cprop.getVal("proxyLog", "pathEndswith", "."), cprop.getBool("proxyLog", "logNameHasOrigin", 'true'))
+            cprop.getVal("proxyLog", "pathStartswith", "."), cprop.getVal("proxyLog", "pathEndswith", "."), cprop.getBool("proxyLog", "logNameHasOrigin", 'true'),
+            cprop.getInt("proxyLog", "logRespSize", 1024), cprop.getVal("proxyLog", "logAllUrl", ''))
     # log by ip
-    def __setFromIpLogPath__(self, logFolder, fromIps, pathStartswith, pathEndswith, logNameHasOrigin):
+    def __setFromIpLogPath__(self, logFolder, fromIps, pathStartswith, pathEndswith, logNameHasOrigin, logRespSize, logAllUrl):
         self.logFolder = logFolder
         self.pathStartswith = pathStartswith.split(",")
         self.pathEndswith = pathEndswith.split(",")
         self.logNameHasOrigin = logNameHasOrigin
+        self.logRespSize = int(logRespSize)
+        self.logAllUrl = logAllUrl
 
         ips = []
         for ip in fromIps.split(","):
@@ -220,11 +229,13 @@ pathEndswith   =
             import os
             os.system("mkdir -p %s/%s" % (logFolder, ip))
 
-    def resetProxyLogrule(self, pathStartswith="", pathEndswith=""):
+    def resetProxyLogrule(self, pathStartswith="", pathEndswith="", logRespSize=1024, logAllUrl=""):
         if pathStartswith.strip() != "":
             self.pathStartswith = pathStartswith.split(",")
         if pathEndswith.strip() != "":
             self.pathEndswith = pathEndswith.split(",")
+        self.logRespSize = int(logRespSize)
+        self.logAllUrl = logAllUrl
         return self.pathStartswith, self.pathEndswith
 
     def __isLogResponse__(self, reqPath, reqParam, respBody):
@@ -251,5 +262,6 @@ pathEndswith   =
             hostInfo = host
 
         isLogResp = self.__isLogResponse__(reqPath, reqParam, respBody)
-        reqInfo = self.__getSimpleSession__(isLogResp, isMock, command, reqPath, reqParam, respBody, reqTime, respTime, respStatus, reqAddress, reqHeader, respHeader)
+        reqInfo = self.__getSimpleSession__(isLogResp, isMock, command, reqPath, reqParam, respBody, reqTime,
+            respTime, respStatus, reqAddress, reqHeader, respHeader, self.logRespSize, self.logAllUrl)
         self.__getHostLog__(hostInfo).info(reqInfo)

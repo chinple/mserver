@@ -253,7 +253,9 @@ class TestDriver:
             co = tb.tb_frame.f_code
             filename = co.co_filename
             if not MTConst.exceptReg.isMatch(filename):
-                tbInfo += '  File "%s", line %s, in %s\r\n' % (filename, tb.tb_lineno, co.co_name)
+                try:
+                    tbInfo += '  File "%s", line %s, in %s\r\n' % (filename, tb.tb_lineno, co.co_name)
+                except:tbInfo += '\n'
             tb = tb.tb_next
         return tbInfo
 

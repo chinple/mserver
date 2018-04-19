@@ -159,18 +159,32 @@ class SummaryReport:
         mimeMail.attach(MIMEText(_text=htmlBody.encode("utf8"), _subtype="html", _charset="utf8"))
         return mimeMail
 
-    def sendEmail(self, smtpAddr, smtpLogin, sender, receiver):
+    def sendEmail(self, emailProxy, smtpAddr, smtpLogin, sender, receiver):
+        if emailProxy == "" and smtpAddr == "":return
+
         try:
             if receiver == "":
                 raise Exception("No receiver")
             receiver = receiver.split(";")
-            smtpAccount, smtpPasswd = base64.decodestring(smtpLogin).split("/")
-            from smtplib import SMTP
             mimeMail = self.__makeEmail(sender, receiver, self.subject, self.htmlContent)
+            if emailProxy.strip() != "":
+                from server.cclient import curl
+                from libs.parser import toJsonStr
+                slog.info("Sending report: %s -> %s" % (emailProxy, receiver))
+                h = curl("%s/cservice/AuthApi/checkLogin" % emailProxy, '{"name":"mtest", "passwd":"mtest"}',
+                     isRespHeader=True, isCheckStatus=False)[0]
+                slog.info(curl("%s/cservice/CTestPlanAPi/sendEmail" % emailProxy,
+                    toJsonStr({"mimeMail":mimeMail.as_string(), "receiver":";".join(receiver), "ccReceiver":""}),
+                     ** {"Cookie":h['set-cookie']}))
+                return
+
+            smtpAccount, smtpPasswd = base64.decodestring(smtpLogin).split("/")
             slog.info("Sending report mail(SMTP %s):\n\t%s -> %s" % (smtpAddr, smtpAccount, receiver))
             smtp = smtpAddr.split(':')
             smtpServer = smtp[0]
             smtpPort = int(ObjOperation.tryGetVal(smtp, 1, 25))
+
+            from smtplib import SMTP
             smtpClient = SMTP(smtpServer, smtpPort)
             try:
                 smtpClient.ehlo()

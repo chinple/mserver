@@ -3,7 +3,7 @@ Created on 2011-2-21
 
 @author: chinple
 '''
-from libs.objop import ArgsOperation
+from libs.objop import ArgsOperation, FileOperation
 from libs.refrect import DynamicLoader
 import sys
 from tmodel.runner.vdriver import TestViewDriver
@@ -57,6 +57,7 @@ class TestLoader:
         self.propConf = mtArgs.prop
         self.logServer = mtArgs.logServer
 
+        self.emailProxy = mtArgs.emailProxy
         self.smtp = mtArgs.smtp
         self.sender = mtArgs.sender
         self.receiver = mtArgs.receiver
@@ -66,7 +67,14 @@ class TestLoader:
         self.version = mtArgs.version
         self.environment = mtArgs.environment
 
-        self.fileList = mtArgs.file
+        self.fileList = []
+        for f in mtArgs.file:
+            import os
+            if os.path.exists(f):
+                if os.path.isfile(f) or f == '.':
+                    self.fileList.append(f)
+                else:
+                    self.fileList = self.fileList + FileOperation.getSubFiles(f, ".py", True)
         self.ignoreImportExcept = False
 
     def launch(self, returnRuninfo=False):
@@ -93,8 +101,7 @@ class TestLoader:
         from tmodel.runner.logsummary import SummaryReport
         sr = SummaryReport()
         sr.setReport(self.product, self.version, self.environment, runInfo, self.logServer, self.logFilePath)
-        if self.smtp.strip() != "":
-            sr.sendEmail(self.smtp, self.smtpLogin, self.sender, self.receiver)
+        sr.sendEmail(self.emailProxy, self.smtp, self.smtpLogin, self.sender, self.receiver)
 
     def __loadModels(self):
         return DynamicLoader.getClassFromFile("ModelDecorator", self.ignoreImportExcept, *self.fileList)
@@ -136,7 +143,8 @@ Example:
     ("code", "codeFile"), ("graph", "graphPath"),
     ("base", "baseClass such as TestCaseBase", ""),
     ("namespace", "namespace such as mtestGeneratedCode", ""),
-    
+
+    ("emailProxy", "email proxy(ctool) address, such as localhost:8089", ""),
     ("smtp", "smtpAddress, such as mail.163.com:465"),
     ("sender", "mail sender"),
     ("receiver", "mail receiver, such as a@qq.com;b@163.com"),

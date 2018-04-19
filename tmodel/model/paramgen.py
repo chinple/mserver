@@ -43,6 +43,9 @@ class CombSpace:
         else:
             return [self.getCombNum(orderNum) for orderNum in self.getAllNum(True, isPureNum)]
 
+    def getTotalNum(self):
+        return self.__spaceSize__
+
     def addOrderNum(self, orderNum, spaceIndex):
         orderNum += self.__orderNumCombBase__[spaceIndex]
         if orderNum < self.__spaceSize__:
@@ -190,6 +193,59 @@ class ParamRender:
                 spIndex += 1
 
         return param
+
+class CombineSingleParam:
+    def __init__(self, tParam, whereCondition, group):
+
+        self.tParam = TValueGroup(tParam)
+        self.condition = ObjOperation.tryGetVal(whereCondition, "condition", None)
+        self.combSp = self.__combParam__(tParam, whereCondition, group)
+
+        self.totalParams = self.combSp.getTotalNum()
+        self.curOrderNum = 0
+        self.curParamIndex = 0
+
+    def __combParam__(self, tParam, whereCondition, group):
+        strategy = ObjOperation.tryGetVal(whereCondition, "strategy", 'add').strip().lower()
+        self.isPureNum = strategy != 'product' and strategy != 'available'
+        self.isList = strategy == 'datalist'
+
+        self.paramRender = ParamRender(tParam, ObjOperation.tryGetVal(whereCondition, "combine", []), strategy == "datalist", strategy != "product")
+        degree = self.paramRender.getDegree()
+        return CombSpace(*degree['degree'])
+
+    def nextParam(self):
+        while self.curOrderNum < self.totalParams:
+            nextParam = self._getNextParam()
+            if self.condition is None or self.condition(nextParam) is not False:
+                self.curParamIndex += 1
+                return nextParam
+
+    def toNextParamArg(self, paramIndex, switchCount=1):
+        o = self.combSp.addOrderNum(self.curOrderNum - switchCount, paramIndex)
+        self.curOrderNum = (self.totalParams + 1) if o is None else o 
+
+    def _getNextParam(self):
+        if self.isList:
+            strategyParam = TValueGroup({})
+        else:
+            strategyParam = TValueGroup(self.tParam, True, isDeepClone=True)
+        strategyParam.pIndex = self.curParamIndex
+        strategyParam.paramName = None
+        strategyParam.orderNum = self.curOrderNum
+
+        self.__renderParam__(strategyParam)
+
+        if self.isPureNum:
+            self.curOrderNum = self.combSp.getNextPureOrderNum(self.curOrderNum)
+        else:
+            self.curOrderNum += 1
+
+        return strategyParam
+
+    def __renderParam__(self, strategyParam, isCombineGroup=True):
+        combNum = self.combSp.getCombNum(self.curOrderNum)
+        self.paramRender.renderParam(combNum, strategyParam)
 
 class CombineWhereParam:
     def __init__(self, tParam, whereCondition, group):

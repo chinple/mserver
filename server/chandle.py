@@ -223,7 +223,8 @@ class RouterHandler:
     def getHandler(self, reqPath):
         reqKey, path = reqPath[1:], ""
         for i in xrange(len(reqKey)):
-            if reqKey[i] == '/':
+            k = reqKey[i]
+            if k == '/' or k == "?":
                 reqKey, path = reqKey[0:i], reqKey[i:]
                 break
         try:
