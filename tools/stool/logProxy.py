@@ -10,14 +10,14 @@ from server.chandle import parseRequestParam, tryGet
 @cloudModule(handleUrl="/", proxyConfig={"t":'textarea'})
 class LogHttpProxy(LogHttpHandle):
     urlmockdata = None
-    def addUrlMock(self, url, param, resp, status=200, isdelete='false'):
+    def addUrlMock(self, url, param, resp, status=200, wait=0, isdelete='false'):
         if self.urlmockdata is None: self.urlmockdata = {}
         if isdelete == "true":
             try:
                 self.urlmockdata.__delitem__(url)
             except:pass
         else:
-            self.urlmockdata[url] = {'p':parseRequestParam(param), 'd':resp, 's':int(status)}
+            self.urlmockdata[url] = {'p':parseRequestParam(param), 'd':resp, 's':int(status), 'w':float(wait)}
         return self.urlmockdata.keys()
 
     def _getMockkey(self, reqPath, reqParam):
@@ -39,7 +39,7 @@ class LogHttpProxy(LogHttpHandle):
 
     def __getMockResponse__(self, reqPath, reqParam, reqHeader):
         urlmmock = self._getMockkey(reqPath, reqParam)
-        return tryGet(urlmmock, 's', 200), urlmmock['d']
+        return tryGet(urlmmock, 's', 200), tryGet(urlmmock, 'w', 0), urlmmock['d']
 
     def __analyzeSession__(self, isMock, command, reqPath, reqParam, respBody, reqTime, respTime, respStatus,
             reqAddress, reqHeader, respHeader):

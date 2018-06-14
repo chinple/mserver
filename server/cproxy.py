@@ -92,7 +92,9 @@ class ProxyHttpHandle:
 
         isMock, reqAddress, respTime = False, reqObj.client_address, time.time()
         if self.isMock and _tryExecute(self.__isMockRquest__, (reqPath, reqParam, reqObj.headers, reqObj.client_address), False):
-            respStatus, resp = self.__getMockResponse__(reqPath, reqParam, reqObj.headers)
+            respStatus, wait, resp = self.__getMockResponse__(reqPath, reqParam, reqObj.headers)
+            if wait > 0:
+                time.sleep(wait)
             isMock, reqHeader, respBody = True, reqObj.headers, bytes(resp)
             respHeader = [("Content-Length", len(respBody)), ("Content-Type", "text/plan;charset=utf-8")]
         else:
@@ -191,7 +193,7 @@ class ProxyHttpHandle:
         return False
 
     def __getMockResponse__(self, reqPath, reqParam, reqHeader):
-        pass
+        return 200, 0, ""
 
 class LogHttpHandle(ProxyHttpHandle):
     '''
