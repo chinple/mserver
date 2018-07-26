@@ -9,4 +9,4 @@ from cserver import servering
 
 if __name__ == "__main__":
     # --workerSize 5
-    servering(r' -p 8081 -t D:\explore\mserver\tools\stool\logProxy.py -s 172.16.6.37:8089 --initMethods "LogHttpProxy.addUrlMock,LogHttpProxy.reloadProxyConfig"')
+    servering(r' -p 8080  -f /Users/happyheart/Documents/workdocs/explore')

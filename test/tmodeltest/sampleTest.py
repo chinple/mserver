@@ -21,3 +21,11 @@ class SampleTestCase(TestCaseBase):
 if __name__ == "__main__":
     from mtest import testing
     testing("-r run ")
+    
+    
+class KeywordImpl:
+    def loginInMobile(self,name,password):
+        pass
+    def sendMobileMessage(self,to,message):
+        pass
+

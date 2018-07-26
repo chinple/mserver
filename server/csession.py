@@ -86,7 +86,8 @@ class LocalMemSessionHandler(SessionHandlerBase):
 
     def __generateSessionCookie(self, reqObj, reqPath, reqParam):
         sessionid, sessionCookie = self.lsc.genrateSession(self.sessionName)
-        reqObj.sessionCookie = sessionCookie
+
+        reqObj.sessionHeaders = {"Access-Control-Allow-Credentials": "true", "Set-Cookie":sessionCookie}
         return sessionid
 
     def __isInvalidSession__(self, sessionid):

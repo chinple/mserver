@@ -55,7 +55,7 @@ class CServerHandler(BaseHTTPRequestHandler):
     webroot = None
     uploadFolder = "."
     rHandler = None  # router handler, set by @createHttpServer
-    sessionCookie = None
+    sessionHeaders = None
     session = None
     redirectPath = None
     maxBodySize = 104857600
@@ -147,9 +147,10 @@ class CServerHandler(BaseHTTPRequestHandler):
     def sendSimpleHeaders(self, respCode, contentType, contentLength, headers=None):
 
         self.sendHeaderCode(respCode)
-        if self.sessionCookie is not None:
-            self.send_header("Set-Cookie", self.sessionCookie)
-            self.sessionCookie = None
+        if self.sessionHeaders is not None:
+            for h in self.sessionHeaders:
+                self.send_header(h, self.sessionHeaders[h])
+            self.sessionHeaders = None
         if self.redirectPath is not None:
             self.send_header("Location", self.redirectPath)
             self.redirectPath = None
@@ -177,8 +178,8 @@ class CServerHandler(BaseHTTPRequestHandler):
         self.sendSimpleHeaders(respCode, contentType, len(bresp), headers)
         self.sendByteBody(bresp)
 
-    def sendResponse(self, resp, contentType=None, respCode=None):
-        self.sendByteResponse(bytes(str(resp)), contentType, respCode)
+    def sendResponse(self, resp, contentType=None, respCode=None, headers=None):
+        self.sendByteResponse(bytes(str(resp)), contentType, respCode, headers)
 
     def sendFileResponse(self, path, filesize, contentType=None, start=None, limit=None, respCode=None, mode="rb"):
         if start is None:
@@ -329,7 +330,7 @@ class FolderHandler:
                     fs = []
                     for a in files:
                         p = "%s/%s" % (f, a)
-                        fs.append([a, os.path.isdir(p), os.path.getsize(p)])
+                        fs.append([a, os.path.isdir(p), os.path.getsize(p), time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(os.path.getatime(p)))])
                     reqObj.sendResponse(_jsn.encode(fs))
                 else:
                     fs = []
