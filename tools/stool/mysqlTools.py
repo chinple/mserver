@@ -7,7 +7,7 @@ from cserver import cloudModule
 from db.sqltool import SqlOpTool, BasicSqlTool
 
 @cloudModule(jwhere={"t":'textarea'}, jvalue={"t":'textarea'}, where={"t":'textarea'}, whereArgs={"t":'textarea'})
-class BillSqlTool(BasicSqlTool):
+class DevEnvSqlTool(BasicSqlTool):
     pass
 
 @cloudModule(jwhere={"t":'textarea'}, jvalue={"t":'textarea'}, where={"t":'textarea'}, whereArgs={"t":'textarea'})

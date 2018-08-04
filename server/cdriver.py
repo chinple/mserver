@@ -4,7 +4,10 @@ Created on 2012-3-21
 @author: chinple
 '''
 from libs.ini import IniConfigure
+
+
 class ServerDriver:
+
     def __init__(self):
         self.cserviceInfo = []
         self.cserviceProxy = []
@@ -18,7 +21,8 @@ class ServerDriver:
         self.cserviceInfo.append((moduleCls, handleUrl, moduleInfo))
 
     def startService(self):
-        self.__registerService(self.__getLocalExIp(), self.ports, self.initMethods)
+        import threading
+        threading.Thread(target=self.__registerService, args=(self.__getLocalExIp(), self.ports, self.initMethods)).start()
         from server.claunch import launchHttpServer
         launchHttpServer(self._serverArgs, self.ports)
 
@@ -31,6 +35,8 @@ class ServerDriver:
     def __registerService(self, exip, ports, initMethods):
         from libs.syslog import slog
         slog.warn("%s:%s register to %s with %s" % (exip, ", ".join([str(p) for p in ports]), self.regServer, self.regName))
+        import time
+        time.sleep(1)
         if self.regServer != "":
             from server.cclient import curlCservice
             curlCservice(self.regServer, 'CServiceTool/registServer',
