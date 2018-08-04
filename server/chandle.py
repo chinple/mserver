@@ -33,8 +33,8 @@ def parseRequestParam(paramStr):
             return _jsd.decode(paramStr)
         except:
             reqParam = {}
-            for name, value in parse_qsl(paramStr):
-                reqParam[name] = urllib.unquote(value)
+            for name, value in parse_qsl(urllib.unquote(paramStr)):
+                reqParam[name] = value
             return reqParam
     except:
         return {}
