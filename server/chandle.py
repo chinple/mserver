@@ -234,7 +234,7 @@ class RouterHandler:
             return self.defHandler, reqPath
 
     def __handleRequest__(self, reqObj, reqPath, reqParam, isPost):
-        h, reqPath = self.getHandler(reqPath)
+        h, reqPath = self.getHandler(urllib.unquote(reqPath))
         redirect = h.__handleRequest__(reqObj, reqPath, reqParam, isPost)
         if redirect is not None:  # handle request second time
             h2, reqPath = self.getHandler(redirect)
