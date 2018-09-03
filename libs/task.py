@@ -8,7 +8,9 @@ from libs.syslog import slog
 import traceback
 from multiprocessing.pool import ThreadPool
 
+
 class TaskDriver:
+
     def __init__(self, interval, taskHandler, driverName="driver", poolSize=100):
         self.tasks = {}
         self.taskPool = ThreadPool(poolSize)
@@ -28,15 +30,16 @@ class TaskDriver:
         if self.tasks.__contains__(taskKey):
             self.tasks.__delitem__(taskKey)
 
-    def saveTask(self, taskKey, hour=0, minute=0, span=0, **taskArgs):
+    def saveTask(self, taskKey, hour=0, minute=0, span=0, liveCount=None, **taskArgs):
         if self.tasks.__contains__(taskKey):
             task = self.tasks[taskKey]
             task['hour'] = int(hour)
             task['minute'] = int(minute)
             task['span'] = int(span)
+            task['liveCount'] = None if liveCount is None else int(liveCount)
         else:
             task = {'key':taskKey,
-                'hour':int(hour), 'minute':int(minute), 'span':int(span),
+                'hour':int(hour), 'minute':int(minute), 'span':int(span), 'liveCount':liveCount,
                 'now':time.time(), 'time':0, 'status':'ready', 'pause':False}
             self.tasks[taskKey] = task
             self.taskHandler.prepare(task)
@@ -69,13 +72,16 @@ class TaskDriver:
                 slog.error("Fail schedule: %s" % traceback.format_exc())
 
     def __runMatchSchedule__(self, secTime, nowHour, nowMin, task):
-        if task['span'] > 0:
-            if secTime - task['now'] >= task['span']:
-                self.taskPool.apply_async(self.__runTaskInPool__, (secTime, task))
-        if nowHour == task['hour'] and nowMin == task['minute']:
+        liveCount = task['liveCount']
+        if liveCount is not None and liveCount <= 0:return
+        if (task['span'] > 0 and secTime - task['now'] >= task['span']) or \
+            (nowHour == task['hour'] and nowMin == task['minute']): 
+
             self.taskPool.apply_async(self.__runTaskInPool__, (secTime, task))
+            if liveCount is not None:task['liveCount'] = liveCount - 1
 
     def __runTaskInPool__(self, secTime, task):
+
         def updateTask():
             try:
                 self.taskHandler.update(task)
@@ -105,7 +111,9 @@ class TaskDriver:
             return 1
         return 0
 
+
 class FunctionTaskHandle:
+
     def __init__(self, isTaskInProcess, poolSize):
         pool = None
         if isTaskInProcess:
@@ -113,25 +121,27 @@ class FunctionTaskHandle:
             pool = multiprocessing.Pool(processes=poolSize)
         self.pool = pool
 
-    def update(self, task):
-        pass
-
-    def prepare(self, task):
+    def prepare(self, task):  # one time
         task['fun'] = None
 
-    def initRun(self, task):
+    def update(self, task):  # sync task status no exception
         pass
 
-    def run(self, task):
+    def initRun(self, task):  # starting
+        pass
+
+    def run(self, task):  # running
         if self.pool is None:
             task['fun']()
         else:
             self.pool.apply(task['fun'])
 
-    def endRun(self, task):
+    def endRun(self, task):  # ending
         pass
 
+
 class TaskMananger:
+
     def __init__(self, initFunGroup=True, groupInterval=1, poolSize=10, isTaskInProcess=False):
         self.taskGroups = {}
         if initFunGroup:
@@ -145,9 +155,9 @@ class TaskMananger:
             taskGroup = TaskDriver(interval, taskHandler, groupName, poolSize)
             self.taskGroups[groupName] = taskGroup
 
-    def saveTask(self, taskKey, groupName="function", hour=-1, minute=0, span=-1, **taskArgs):
+    def saveTask(self, taskKey, groupName="function", hour=-1, minute=0, span=-1, liveCount=None, **taskArgs):
         taskGroup = self.taskGroups[groupName]
-        task = taskGroup.saveTask(taskKey, hour, minute, span, **taskArgs)
+        task = taskGroup.saveTask(taskKey, hour, minute, span, liveCount, **taskArgs)
         return task
 
     def deleteTask(self, taskKey , groupName="function"):

@@ -6,13 +6,18 @@ Created on 2012-6-11
 import re
 from httplib import HTTPConnection, OK
 
+
 class HttpRequestConnection(HTTPConnection):
+
     def putrequest(self, method, url, skip_host=0, skip_accept_encoding=1):
         return HTTPConnection.putrequest(self, method, url, skip_host, skip_accept_encoding)
 
+
 class RequstException(Exception):pass
 
+
 class HttpClient:
+
     def __init__(self, hostport, connTimeout=None, keepAlive=False):
 
         self.hostport = hostport        
@@ -23,6 +28,7 @@ class HttpClient:
         self.setLogInfo()
 
     _cmanager = {}
+
     @staticmethod
     def getThreadClient(hostport, connTimeout=None, keepAlive=False):
         from logging import thread
@@ -139,6 +145,23 @@ class HttpClient:
     def close(self):
         self._httpConn.close()
 
+
+def encodeUrl(jdata):
+    from libs.parser import toJsonStr
+    import urllib
+
+    if jdata is None:return
+    ds = []
+    for k in jdata.keys():
+        v = jdata[k]
+        if type(v) == dict or type(v) == list:
+            v = toJsonStr(v)
+        else:
+            v = str(v)
+        ds.append("%s=%s" % (k, urllib.quote(v)))
+    return "&".join(ds)
+
+
 def curl(url, body=None, isReadResp=True, logHandler=None, logHeader=False, logResp=False,
          isCheckStatus=True, isRespHeader=False, connTimeout=None, command=None, hasSession=False, **headers):
     url = url.replace("http://", "")
@@ -153,10 +176,14 @@ def curl(url, body=None, isReadResp=True, logHandler=None, logHeader=False, logR
 
     if command is None:
         command = "GET" if body is None else "POST"
+    elif command.__contains__("FORM"):
+        command, body = command.replace("FORM", ""), encodeUrl(body)
+
     try:
         return client.sendRequest(path, body, command, isReadResp, headers, isRespHeader, isCheckStatus)
     finally:
         client.close()
+
 
 def curlCservice(hosts, infPath, isCheckResp=False, isGetInfo=False, logHandler=None, connTimeout=None, **args):
     from libs.parser import toJsonStr, toJsonObj
@@ -170,8 +197,10 @@ def curlCservice(hosts, infPath, isCheckResp=False, isGetInfo=False, logHandler=
     else:
         return resp
 
+
 def _jsonToUrlValue(value, urlValues, key=""):
     t = type(value)
+
     def formatKey(k1, k2):
         if k1 == "":
             return k2
@@ -190,6 +219,7 @@ def _jsonToUrlValue(value, urlValues, key=""):
                 urlValues.append("%s=%s" % (key, value))
             else:
                 urlValues.append(str(value))
+
 
 def jsonToUrlValue(jsonObj):
     urlValues = []

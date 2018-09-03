@@ -375,6 +375,8 @@ class FileUploadHandler:
             elif fileHandler is not None and li > 3:
                 fileHandler.writelines(l)
             li += 1
+        if fileHandler is not None:
+            fileHandler.close()
         return ",".join(upResult)
 
     def __getUploadFilePath__(self, uploadFolder, fileInfo, reqParam):

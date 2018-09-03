@@ -41,8 +41,11 @@ def cserviceProxy(handleUrl=None):
     return __cserviceMiddleFun
 
 def servering(*args):
-    from libs.objop import StrOperation
     import sys
+    if sys.getdefaultencoding() != "utf-8":
+        reload(sys)
+        eval('sys.setdefaultencoding("utf-8")')
+    from libs.objop import StrOperation
     
     if len(args) == 0:
         args = ("-t", sys.argv[0])

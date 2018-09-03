@@ -7,7 +7,9 @@ Created on 2012-5-4
 import thread
 from random import randint
 
+
 class SqlConnBase:
+
     class SqlConnException(Exception):
         pass
 
@@ -34,8 +36,10 @@ class SqlConnBase:
             self._connLock.release()
         finally:
             self.isFree = True
+
     def __str__(self):
         return "%s: %s" % (self.connid, self.isFree)
+
 
 class SqlConnFactory:
 
@@ -77,16 +81,20 @@ class SqlConnFactory:
     def getSql(self, opTable, opType=0, isDict=False, fieldDesp="*"):
         return Sql(self, opTable, opType, isDict, fieldDesp)
 
-def _sinjv(v):
-    return str(v).replace("'", "''")
 
-def _sinjtuplev(vs):
+def _2sqlVal(v):
+    return str(v).replace("'", "''").replace("\\", "\\\\")
+
+
+def _2sqlInval(vs):
     vsj = []
     for v in vs:
-        vsj.append(_sinjv(v))
+        vsj.append(_2sqlVal(v))
     return tuple(vsj)
 
+
 class Sql:
+
     def __init__(self, connFactory, opTable, opType=0, isDict=False, fieldDesp="*"):
         self.connFactory = connFactory
         self.opTable = opTable
@@ -146,10 +154,10 @@ class Sql:
             isInCond, tv = cond == 'in', type(val)
             if isInCond:
                 if tv == str or tv == unicode:
-                    val = _sinjv(val)
+                    val = _2sqlVal(val)
                     val = tuple(val.split(','))
                 else:
-                    val = _sinjtuplev(val)
+                    val = _2sqlInval(val)
                 cond = 'in'
                 if len(val) == 0:
                     return self
@@ -158,7 +166,7 @@ class Sql:
                 else:
                     val = '(%s)' % (((", '%s'" * len(val)) % val)[1:])
             else:
-                val = _sinjv(val)
+                val = _2sqlVal(val)
             if len(self.where) > 0:
                 self.where.append("and" if isAnd else "or")
             self.where.append("%s %s %s " % ("" if isYesCond else " not", name, cond))
@@ -201,13 +209,42 @@ class Sql:
         if cond is not None:
             if len(self.where) > 0:
                 self.where.append("and" if isAnd else "or")
-            self.where.append(cond % (_sinjtuplev(args)))
+            self.where.append(cond % (_2sqlInval(args)))
+        return self
+
+    def appendLogicCondition(self, name, value, isLike):
+    # name = aaa+bbb&ccc|ddd , means: name = aaa and name = bbb and name = ccc or name = ddd
+        if not self.isEmpty(value):
+            self.startCondition()
+            value, s, isAnd = value + "&", 0, True
+            for e in range(len(value)):
+                if e > (s + 1) and '+&|'.find(value[e]) >= 0:
+                    v = value[s:e].strip()
+                    if not self.isEmpty(v):
+                        ci = 2 if isLike else 0
+                        if v[0] == '!':
+                            ci += 1
+                            v = v[1:]
+                            if self.isEmpty(v):continue
+                        if isLike: v = "%" + v + "%"
+                        self.appendWhere(name, v, ['=', '!=', 'like', 'not like'][ci], isAnd)
+                    s, isAnd = e + 1, value[e] == '&' or value[e] == '+'
+            self.endCondition()
+        return self
+    
+    def appendLikeCondition(self, value, isAnd, *name):
+        if not self.isEmpty(value):
+            value = "%" + value + "%"
+            self.startCondition()
+            for n in name:
+                self.appendWhere(n, value, 'like', isAnd)
+            self.endCondition()
         return self
 
     def appendValue(self, name, val):
         if val != None:
             self.names.append(name)
-            self.values.append(_sinjv(val))
+            self.values.append(_2sqlVal(val))
         return self
 
     def appendValueByJson(self, jobj):
