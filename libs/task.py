@@ -76,9 +76,8 @@ class TaskDriver:
         if liveCount is not None and liveCount <= 0:return
         if (task['span'] > 0 and secTime - task['now'] >= task['span']) or \
             (nowHour == task['hour'] and nowMin == task['minute']): 
-
-            self.taskPool.apply_async(self.__runTaskInPool__, (secTime, task))
             if liveCount is not None:task['liveCount'] = liveCount - 1
+            self.taskPool.apply_async(self.__runTaskInPool__, (secTime, task))
 
     def __runTaskInPool__(self, secTime, task):
 

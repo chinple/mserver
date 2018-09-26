@@ -10,7 +10,9 @@ from libs.syslog import slog
 import base64
 import os
 
+
 class LogAnalyzer:
+
     def __init__(self):
         self.runInfo = {0: 7, 1: 0, 2: 0, 3: 0, 'num': 7, 'startTime': 1475911195.424, 'endTime':time.time(), 'time': 0.0}
         self.htmlReportTemplate = '''
@@ -137,7 +139,9 @@ class LogAnalyzer:
 #                         self.__addCase(caseName, resCode, resTime)
 #                         caseName = ""
 
+
 class SummaryReport:
+
     def __init__(self):
         self.la = LogAnalyzer()
 
@@ -171,11 +175,8 @@ class SummaryReport:
                 from server.cclient import curl
                 from libs.parser import toJsonStr
                 slog.info("Sending report: %s -> %s" % (emailProxy, receiver))
-                h = curl("%s/cservice/AuthApi/checkLogin" % emailProxy, '{"name":"mtest", "passwd":"mtest"}',
-                     isRespHeader=True, isCheckStatus=False)[0]
-                slog.info(curl("%s/cservice/CTestPlanAPi/sendEmail" % emailProxy,
-                    toJsonStr({"mimeMail":mimeMail.as_string(), "receiver":";".join(receiver), "ccReceiver":""}),
-                     ** {"Cookie":h['set-cookie']}))
+                slog.info(curl("%s/cservice/TestPlanApi/sendMtestEmail" % emailProxy,
+                    toJsonStr({"mimeMail":mimeMail.as_string(), "mailto":";".join(receiver), "mailcc":"", "verify":"mtest"})))
                 return
 
             smtpAccount, smtpPasswd = base64.decodestring(smtpLogin).split("/")
@@ -195,6 +196,7 @@ class SummaryReport:
         except Exception as ex:
             slog.info(self.htmlContent)
             slog.info("Fail to send mail for: %s" % ex)
+
 
 if __name__ == '__main__':
     sr = SummaryReport()

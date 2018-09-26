@@ -42,8 +42,15 @@ class SqlConnBase:
 
 
 class SqlConnFactory:
+    
+    def __init__(self):
+        self.conns = []
 
-    def __init__(self, sqlConnClass, sqlConfig, maxConns=10):
+    def isInited(self):
+        return len(self.conns) > 0
+
+    def setSqlclass(self, sqlConnClass, sqlConfig, maxConns=10):
+        if sqlConnClass is None:return
         self.nowConnId, self.maxConns = 0, maxConns
         self.conns = []
         for connid in range(maxConns):
