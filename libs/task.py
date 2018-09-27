@@ -26,10 +26,6 @@ class TaskDriver:
         self.count = 0
         self.taskHandler = taskHandler
 
-    def deleteTask(self, taskKey):
-        if self.tasks.__contains__(taskKey):
-            self.tasks.__delitem__(taskKey)
-
     def saveTask(self, taskKey, hour=0, minute=0, span=0, liveCount=None, **taskArgs):
         if self.tasks.__contains__(taskKey):
             task = self.tasks[taskKey]
@@ -46,12 +42,18 @@ class TaskDriver:
 
         for a in taskArgs:
             task[a] = taskArgs[a]
+        return task
 
     def operateTask(self, taskKey, optype="run"):
+        if not self.tasks.__contains__(taskKey):
+            raise Exception("task not exist")
+
         task = self.tasks[taskKey]
-        if optype == "pause":
+        if optype == 'delete':
+            self.tasks.__delitem__(taskKey)
+        elif optype == "pause":
             task['pause'] = True
-        else:
+        elif optype == 'run':
             task['pause'] = False
             self.__runTaskInPool__(time.time(), task)
         return task
@@ -158,10 +160,6 @@ class TaskMananger:
         taskGroup = self.taskGroups[groupName]
         task = taskGroup.saveTask(taskKey, hour, minute, span, liveCount, **taskArgs)
         return task
-
-    def deleteTask(self, taskKey , groupName="function"):
-        taskGroup = self.taskGroups[groupName]
-        return taskGroup.deleteTask(taskKey)
 
     def operateTask(self, taskKey, groupName="function", optype="run"):
         taskGroup = self.taskGroups[groupName]
