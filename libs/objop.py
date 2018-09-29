@@ -9,13 +9,16 @@ import os
 from optparse import OptionParser
 import re
 
+
 class ObjOperation:
+
     @staticmethod
     def tryGetVal(obj, key, defValue):
         try:
             return obj[key]
         except:
             return defValue
+
     @staticmethod
     def traversalObj(v, h, p=None, k=None):
         t = type(v)
@@ -49,22 +52,20 @@ class ObjOperation:
     @staticmethod
     def jsonFormat(s, j, isUsePath=False):
         js = {"s":s}
+
         def fh(p, k, v):
             if v is not None:
                 js['s'] = js['s'].replace("{%s}" % (p if isUsePath else k), str(v))
+
         ObjOperation.traversalObj(j, fh)
         return js['s']
 
     @staticmethod
     def jsonEqual(expVal, actVal, isAddEqInfo=True, cmpHandler=lambda val1, val2, valKey:val1 == val2,
             cmpFormat="\n%s\t<%s>  %s : %s", isCmpHandler=lambda key, keyPath: True, keyInfo=""):
-        expType = type(expVal)
-        actType = type(actVal)
+        cmpRes, cmpInfo, expType, actType = 0, "", type(expVal), type(actVal)
 
-        cmpRes = 0
-        cmpInfo = ""
-
-        if not cmpHandler(expType , actType, None) and expType != float and expType != int:
+        if not cmpHandler(expType , actType, None) and expType != float and expType != int and expType != str and expType != unicode:
             cmpInfo = cmpFormat % ("!=Type", keyInfo, expVal, actVal)
             cmpRes += 1
         elif expType == dict or expType == list or expType == tuple:
@@ -105,6 +106,7 @@ class ObjOperation:
     
 
 class FileOperation:
+
     @staticmethod
     def getFileEncoding(filePath):
         sourceFormats = [ 'utf-8', 'gbk', 'ascii', 'iso-8859-1']
@@ -116,6 +118,7 @@ class FileOperation:
             except UnicodeDecodeError: 
                 pass
         return "gbk"
+
     @staticmethod
     def openFile(filePath, mode='r', encoding=None):
         return codecs.open(filePath, mode, FileOperation.getFileEncoding(filePath) if encoding is None else encoding)
@@ -146,6 +149,7 @@ class FileOperation:
                             break
                         mergTo.write(logLine)
         mergTo.close()
+
     @staticmethod
     def getSubFiles(fpath, ftype=None, findSubFile=True):
         subFiles = []
@@ -176,7 +180,9 @@ class FileOperation:
         ci += 1
         return filePath[0:ci], filePath[ci:]
 
+
 class StrOperation:
+
     @staticmethod
     def splitStr(target, sep=",", quote=None):
         ss = []
@@ -210,6 +216,7 @@ class StrOperation:
         if lwStr == None:
             return ""
         return "%s%s" % (lwStr[startIndex:middleIndex].lower(), lwStr[middleIndex:])
+
     @staticmethod
     def getRandomString(length, strType="password | low| upper |letter | number", targetSeed=None, separator=''):
         sampleStr = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~!@#$%^&*()_+[]\\{}|;':\",./<>?";
@@ -237,7 +244,9 @@ class StrOperation:
                 result += targetSeed[selector]
         return result
 
+
 class ArgsOperation:
+
     @staticmethod
     def getJsonArgs(jsonArg, argNames, tupleArg, defArg=None):
         argIndex = 0
@@ -258,6 +267,7 @@ class ArgsOperation:
                         jsonArg[argName] = defArg[defArgIndex]
 
         return jsonArg
+
     @staticmethod
     def getTupleArgs(jsonArg, argNames, tupleArg, defArg=None):
         if jsonArg == None or len(jsonArg) == 0:
@@ -394,7 +404,9 @@ Example:
         del parser, listArgs, boolArgs, intArgs, propArgs, argList
         return parseValue, parseMsg, isSuccess
 
+
 class ArrayOperation:
+
     @staticmethod
     def findStepToArray(byIndex):
         ajustStep = []
@@ -435,7 +447,9 @@ class ArrayOperation:
                 aryData[adjStep[1]] = tData if fIndex == tIndex else aryData[fIndex]
         return aryData
 
+
 class NumberOperation:
+
     @staticmethod
     def roundNum(floatNum, pointCount=1, isRound=True):
         baseInt = pow(10, pointCount)

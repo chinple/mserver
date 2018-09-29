@@ -36,7 +36,7 @@ class TaskDriver:
         else:
             task = {'key':taskKey,
                 'hour':int(hour), 'minute':int(minute), 'span':int(span), 'liveCount':liveCount,
-                'now':time.time(), 'time':0, 'status':'ready', 'pause':False}
+                'stime':time.time(), 'tspan':0, 'status':'ready', 'pause':False}
             self.tasks[taskKey] = task
             self.taskHandler.prepare(task)
 
@@ -66,22 +66,22 @@ class TaskDriver:
 
     def __runAllTask__(self):
         now = time.localtime()
-        secTime, hour, minute = time.time(), now.tm_hour, now.tm_min
+        curTime, hour, minute = time.time(), now.tm_hour, now.tm_min
         for sc in self.tasks:
             try:
-                self.__runMatchSchedule__(secTime, hour, minute, self.tasks[sc])
+                self.__runMatchSchedule__(curTime, hour, minute, self.tasks[sc])
             except:
                 slog.error("Fail schedule: %s" % traceback.format_exc())
 
-    def __runMatchSchedule__(self, secTime, nowHour, nowMin, task):
+    def __runMatchSchedule__(self, curTime, nowHour, nowMin, task):
         liveCount = task['liveCount']
         if liveCount is not None and liveCount <= 0:return
-        if (task['span'] > 0 and secTime - task['now'] >= task['span']) or \
-            (nowHour == task['hour'] and nowMin == task['minute']): 
+        if (task['span'] > 0 and curTime - task['stime'] >= task['span']) or \
+            (nowHour == task['hour'] and nowMin == task['minute'] and curTime - task['stime'] > 60):
             if liveCount is not None:task['liveCount'] = liveCount - 1
-            self.taskPool.apply_async(self.__runTaskInPool__, (secTime, task))
+            self.taskPool.apply_async(self.__runTaskInPool__, (curTime, task))
 
-    def __runTaskInPool__(self, secTime, task):
+    def __runTaskInPool__(self, curTime, task):
 
         def updateTask():
             try:
@@ -94,13 +94,13 @@ class TaskDriver:
                 task['status'] = "wait"
                 self.taskHandler.initRun(task)
 
-                task['now'] = secTime
+                task['stime'] = curTime
                 task['status'] = 'run'
                 updateTask()
                 self.taskHandler.run(task)
 
                 task['status'] = 'stop'
-                task['time'] = time.time() - secTime
+                task['tspan'] = time.time() - curTime
             finally:
                 if task['status'] != 'stop':
                     task['status'] = 'exception'
