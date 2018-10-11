@@ -26,25 +26,22 @@ class TaskDriver:
         self.count = 0
         self.taskHandler = taskHandler
 
-    def saveTask(self, taskKey, hour=0, minute=0, span=0, liveCount=None, **taskArgs):
+    def resetTask(self, taskKey, hour, minute, span, maxCount, **taskArgs):
         if self.tasks.__contains__(taskKey):
             task = self.tasks[taskKey]
-            task['hour'] = int(hour)
-            task['minute'] = int(minute)
-            task['span'] = int(span)
-            task['liveCount'] = None if liveCount is None else int(liveCount)
         else:
-            task = {'key':taskKey,
-                'hour':int(hour), 'minute':int(minute), 'span':int(span), 'liveCount':liveCount,
-                'stime':time.time(), 'tspan':0, 'status':'ready', 'pause':False}
+            task = {'key':taskKey, 'stime':time.time() - 60, 'rspan':0, 'status':'ready', 'runCount':0, 'pause':False}
             self.tasks[taskKey] = task
             self.taskHandler.prepare(task)
 
+        task['hour'], task['minute'], task['span'], task['maxCount'] = \
+            int(hour), int(minute), int(span), int(maxCount)
+        if task['status'] == 'finish':task['status'] = 'ready'
         for a in taskArgs:
             task[a] = taskArgs[a]
         return task
 
-    def operateTask(self, taskKey, optype="run"):
+    def changeTask(self, taskKey, optype="run"):
         if not self.tasks.__contains__(taskKey):
             raise Exception("task not exist")
 
@@ -74,11 +71,11 @@ class TaskDriver:
                 slog.error("Fail schedule: %s" % traceback.format_exc())
 
     def __runMatchSchedule__(self, curTime, nowHour, nowMin, task):
-        liveCount = task['liveCount']
-        if liveCount is not None and liveCount <= 0:return
-        if (task['span'] > 0 and curTime - task['stime'] >= task['span']) or \
+        if (task['maxCount'] > 0 and task['maxCount'] <= task['runCount']):
+            task['status'] = 'finish'
+        elif (task['span'] > 0 and curTime - task['stime'] >= task['span']) or \
             (nowHour == task['hour'] and nowMin == task['minute'] and curTime - task['stime'] > 60):
-            if liveCount is not None:task['liveCount'] = liveCount - 1
+            task['runCount'] += 1
             self.taskPool.apply_async(self.__runTaskInPool__, (curTime, task))
 
     def __runTaskInPool__(self, curTime, task):
@@ -100,7 +97,7 @@ class TaskDriver:
                 self.taskHandler.run(task)
 
                 task['status'] = 'stop'
-                task['tspan'] = time.time() - curTime
+                task['rspan'] = time.time() - curTime
             finally:
                 if task['status'] != 'stop':
                     task['status'] = 'exception'
@@ -156,11 +153,11 @@ class TaskMananger:
             taskGroup = TaskDriver(interval, taskHandler, groupName, poolSize)
             self.taskGroups[groupName] = taskGroup
 
-    def saveTask(self, taskKey, groupName="function", hour=-1, minute=0, span=-1, liveCount=None, **taskArgs):
+    def saveTask(self, taskKey, groupName="function", hour=-1, minute=0, span=-1, maxCount=-1, **taskArgs):
         taskGroup = self.taskGroups[groupName]
-        task = taskGroup.saveTask(taskKey, hour, minute, span, liveCount, **taskArgs)
+        task = taskGroup.resetTask(taskKey, hour, minute, span, maxCount, **taskArgs)
         return task
 
     def operateTask(self, taskKey, groupName="function", optype="run"):
         taskGroup = self.taskGroups[groupName]
-        return taskGroup.operateTask(taskKey, optype)
+        return taskGroup.changeTask(taskKey, optype)

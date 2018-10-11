@@ -205,7 +205,7 @@ class TestCaseFactory:
         else:
             desp = despFormat
             for skey in sparam.keys():
-                stype = sparam.GetType(skey)
+                stype = sparam.getType(skey)
                 if stype == None:
                     stype = str(sparam[skey])[0:26]
                 desp = desp.replace("{%s}" % skey, stype)
