@@ -12,7 +12,8 @@ from libs.tvg import TValueGroup
 from server.cclient import curl, jsonToUrlValue
 from libs.parser import toJsonObj
 from libs.syslog import plog, slog
-from tools.stool.syscmdcurl import CurlCmdWrapper
+from server.cclient2 import CurlCmdWrapper
+from tools.cmd.syscmd import CmdExecuter
 
 
 class HttpToolBase:
@@ -89,7 +90,7 @@ class HttpToolBase:
                     headers[h] = v
         return headers
 
-    curlcmd = CurlCmdWrapper()
+    curlcmd = CurlCmdWrapper(CmdExecuter)
 
     def __curlHttpRequest(self, url, body, command , headers, isRespHeader, sslVersion):
         isFormRequest = command.__contains__("FORM")
