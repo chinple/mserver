@@ -75,10 +75,10 @@ class TaskDriver:
             task['status'] = 'finish'
         elif (task['span'] > 0 and curTime - task['stime'] >= task['span']) or \
             (nowHour == task['hour'] and nowMin == task['minute'] and curTime - task['stime'] > 60):
-            task['runCount'] += 1
             self.taskPool.apply_async(self.__runTaskInPool__, (curTime, task))
 
     def __runTaskInPool__(self, curTime, task):
+        task['runCount'] += 1
 
         def updateTask():
             try:
