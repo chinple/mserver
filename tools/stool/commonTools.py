@@ -81,6 +81,10 @@ class HttpToolBase:
         return resp
 
     def _toHeaders(self, hs):
+        try:
+            return toJsonObj(hs)
+        except:pass
+
         headers = {}
         for hv in hs.split(";"):
             hi = hv.find(":")
