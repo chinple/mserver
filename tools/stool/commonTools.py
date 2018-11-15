@@ -107,7 +107,7 @@ class HttpToolBase:
             sslVersion=int(sslVersion))
 
     def sendHttpRequest(self, command="POST", url="", header="", body="",
-            bodyArgs="{0},{1}", reqsetting="isRespHeader:true;sslVersion:-1;connTimeout:60"):
+            bodyArgs="{0},{1}", reqsetting="isRespHeader:true;sslVersion:-1;connTimeout:60", isjsonresp=True):
         command = command.upper()
         if bodyArgs != "":  
             url = self.__replaceArgStr(url, bodyArgs)
@@ -121,10 +121,11 @@ class HttpToolBase:
                 tryGet(reqsetting, 'isRespHeader', 'false') == 'true', tryGet(reqsetting, 'sslVersion', '-1'))
         else:
             resp = curl(url, body, command=command, logHandler=plog.info, connTimeout=int(tryGet(reqsetting, 'connTimeout', '60')), ** h)
-        try:
-            return toJsonObj(resp)
-        except:
-            return resp
+        if isjsonresp:
+            try:
+                return toJsonObj(resp)
+            except:pass
+        return resp
 
     def doHttpsRequest(self, url, body, command="GET", headers={}, isRespHeader=False, certFile=None):
         import httplib

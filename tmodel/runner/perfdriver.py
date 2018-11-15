@@ -12,19 +12,24 @@ from libs.syslog import slog
 from libs.refrect import DynamicLoader
 from mtest import tprop
 
+
 class ThreadRunner(Thread):
-    def __init__(self, manager, thid):
+
+    def __init__(self, manager, thid, interval):
         Thread.__init__(self, name="s%s" % thid)
         self.manager = manager
         self.thid = thid
 
         self.degree = 0
+        self.interval = interval
         self.isContinue = True
 
     def run(self):
         while self.isContinue:
             self.manager.runHandler(self.thid, self.degree)
             self.degree += 1
+            if self.interval > 0:time.sleep(self.interval)
+
 
 class StatisticRunner:
     
@@ -108,9 +113,10 @@ class StatisticRunner:
             for i in xrange(intervalTps):
                 self.allLatency[i] = 0
 
+
 class ThreadStatisticRunner(StatisticRunner):
     
-    def __init__(self, sreport, stsHandler, startThreads, maxThreads, step, expTps):
+    def __init__(self, sreport, stsHandler, startThreads, maxThreads, step, expTps, interval):
         StatisticRunner.__init__(self, stsHandler, sreport, sreport.getAbsTps(expTps))
 
         self.startThreads = startThreads
@@ -123,12 +129,13 @@ class ThreadStatisticRunner(StatisticRunner):
         self.overloadThreads = 0
         self.threadsCount = 0
         self.showIntTime = 0
+        self.interval = float(interval)
 
     def increase(self, threads):
         self.threadsLock.acquire()
         while threads > 0 and self.maxThreads > (self.threadsCount + 1):
             threads -= 1
-            th = ThreadRunner(self, self.threadsCount)
+            th = ThreadRunner(self, self.threadsCount, self.interval)
             self.threads.append(th)
             self.threadsCount += 1
             th.start()
@@ -152,7 +159,9 @@ class ThreadStatisticRunner(StatisticRunner):
         return "{0}: tps {1}, threads {2}->{3}/{4}".format(self.stsHandler.__name__,
             self.intervalTps / 2, self.startThreads, self.maxThreads, self.step)
 
+
 class StressReporter:
+
     def __init__(self):
         self.launchTime = time.time()
         self.staticSize = 60
@@ -253,7 +262,9 @@ class StressReporter:
                 status = 3  # continue for not add
         return status
 
+
 class StressScheduler:
+
     def __init__(self):
         self.sreport = StressReporter()
         self.managers = {}
@@ -320,11 +331,11 @@ class StressScheduler:
             self.managers[name] = r
         return r
 
-    def addScenario(self, stsHandler, startThreads, maxThreads, step, expTps):
+    def addScenario(self, stsHandler, startThreads, maxThreads, step, expTps, interval):
         if self.perfArgs is not None:
             startThreads , maxThreads , step, expTps = self.perfArgs
         self.managers[stsHandler.__name__] = (ThreadStatisticRunner(self.sreport, stsHandler,
-            startThreads , maxThreads , step, expTps))
+            startThreads , maxThreads , step, expTps, interval))
 
     def launch(self):
         isRunning = 0

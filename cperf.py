@@ -6,14 +6,20 @@ Created on 2015-11-25
 from tmodel.runner.perfdriver import StressScheduler
 
 _sc = StressScheduler()
-def stressScenario(startThreads=3, maxThreads=10, step=1, expTps=50):
+
+
+def stressScenario(startThreads=3, maxThreads=10, step=1, expTps=50, interval=0):
+
     def __stressMiddleFun(stsHandler):      
-        _sc.addScenario(stsHandler, startThreads, maxThreads, step, expTps)
+        _sc.addScenario(stsHandler, startThreads, maxThreads, step, expTps, interval)
+
     return __stressMiddleFun
+
 
 def apiStatisticHandler(obj, objFun, tupleArg, jsonArg, adpInfo):
     rh = _sc.getApiRunner(objFun)
     return rh.runHandler(*tupleArg, **jsonArg)[1]
+
 
 def running(*args):
     from libs.objop import StrOperation

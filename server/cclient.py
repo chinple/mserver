@@ -192,7 +192,7 @@ def curlCservice(hosts, infPath, isCheckResp=False, isGetInfo=False, logHandler=
     resp = toJsonObj(resp)
     if isCheckResp:
         if resp[0] != 0:
-            raise Exception("Fail to response: %s" % resp[1])
+            raise Exception("[%s] %s" % (infPath, resp[1]))
         return resp[1]
     else:
         return resp

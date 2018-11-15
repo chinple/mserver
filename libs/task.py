@@ -26,11 +26,11 @@ class TaskDriver:
         self.count = 0
         self.taskHandler = taskHandler
 
-    def resetTask(self, taskKey, hour, minute, span, maxCount, **taskArgs):
+    def resetTask(self, taskKey, hour, minute, span, maxCount, runCount, **taskArgs):
         if self.tasks.__contains__(taskKey):
             task = self.tasks[taskKey]
         else:
-            task = {'key':taskKey, 'stime':time.time() - 60, 'rspan':0, 'status':'ready', 'runCount':0, 'pause':False}
+            task = {'key':taskKey, 'stime':time.time() - 60, 'rspan':0, 'status':'ready', 'runCount':int(runCount), 'pause':False}
             self.tasks[taskKey] = task
             self.taskHandler.prepare(task)
 
@@ -95,12 +95,10 @@ class TaskDriver:
                 task['status'] = 'run'
                 updateTask()
                 self.taskHandler.run(task)
-
                 task['status'] = 'stop'
-                task['rspan'] = time.time() - curTime
             finally:
-                if task['status'] != 'stop':
-                    task['status'] = 'exception'
+                task['rspan'] = time.time() - curTime
+                if task['status'] != 'stop': task['status'] = 'exception'
                 try:
                     self.taskHandler.endRun(task)
                     updateTask()
@@ -153,9 +151,9 @@ class TaskMananger:
             taskGroup = TaskDriver(interval, taskHandler, groupName, poolSize)
             self.taskGroups[groupName] = taskGroup
 
-    def saveTask(self, taskKey, groupName="function", hour=-1, minute=0, span=-1, maxCount=-1, **taskArgs):
+    def saveTask(self, taskKey, groupName="function", hour=-1, minute=0, span=-1, maxCount=-1, runCount=0, **taskArgs):
         taskGroup = self.taskGroups[groupName]
-        task = taskGroup.resetTask(taskKey, hour, minute, span, maxCount, **taskArgs)
+        task = taskGroup.resetTask(taskKey, hour, minute, span, maxCount, runCount, **taskArgs)
         return task
 
     def operateTask(self, taskKey, groupName="function", optype="run"):
