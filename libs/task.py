@@ -34,7 +34,7 @@ class TaskDriver:
             self.tasks[taskKey] = task
             self.taskHandler.prepare(task)
         for a in taskArgs:
-            if not ['stime', 'status'].__contains__(a): task[a] = taskArgs[a]
+            if not ['stime', 'status', 'runCount'].__contains__(a): task[a] = taskArgs[a]
         task['hour'], task['minute'], task['span'], task['maxCount'] = int(hour), int(minute), int(span), int(maxCount)
         return task
 
@@ -70,13 +70,16 @@ class TaskDriver:
     def __runMatchSchedule__(self, curTime, nowHour, nowMin, task):
         if (task['maxCount'] > 0 and task['maxCount'] <= task['runCount']):
             task['status'] = 'finish'
-        elif (task['span'] > 0 and curTime - task['stime'] >= task['span']) or \
-            (nowHour == task['hour'] and nowMin == task['minute'] and curTime - task['stime'] > 60):
-            self.taskPool.apply_async(self.__runTaskInPool__, (curTime, task))
+        else:
+            nspan = curTime - task['stime']
+            mspan = task['span']
+            if mspan > 0 and nspan > mspan:
+                self.taskPool.apply_async(self.__runTaskInPool__, (curTime, task, mspan))
+            elif nspan > 60 and nowHour == task['hour'] and nowMin == task['minute']:
+                self.taskPool.apply_async(self.__runTaskInPool__, (curTime, task, 60))
 
-    def __runTaskInPool__(self, curTime, task):
-        task['stime'] = curTime
-        runCount = task['runCount']
+    def __runTaskInPool__(self, curTime, task, mspan):
+        ltime, task['stime'], runCount = task['stime'], curTime, task['runCount']
 
         def updateTask():
             try:
@@ -84,12 +87,12 @@ class TaskDriver:
             except Exception as ex:
                 slog.error(ex)
 
-        if not ['run', 'init'].__contains__(task['status']):
-            task['status'] = "init";task['runCount'] += 1
-            if task['runCount'] - runCount != 1: return  # check duplicate run
+        if task['status'] != 'run':
+            task['status'] = 'run';task['runCount'] += 1
+            if task['runCount'] - runCount != 1 or((curTime - ltime) < mspan): return  # check duplicate run
             try:
+                task['stime'] = curTime
                 self.taskHandler.initRun(task)
-                task['status'] = 'run';task['stime'] = curTime
                 updateTask()
                 self.taskHandler.run(task)
                 task['status'] = 'wait'
