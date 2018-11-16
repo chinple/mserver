@@ -49,7 +49,7 @@ class TaskDriver:
             task['pause'] = True
         elif optype == 'run':
             task['pause'] = False
-            self.__runTaskInPool__(time.time(), task)
+            self.__runTaskInPool__(time.time(), task, 1)
         return task
 
     def __startTimmer__(self):
