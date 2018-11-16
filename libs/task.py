@@ -70,7 +70,7 @@ class TaskDriver:
     def __runMatchSchedule__(self, curTime, nowHour, nowMin, task):
         if (task['maxCount'] > 0 and task['maxCount'] <= task['runCount']):
             task['status'] = 'finish'
-        else:
+        elif task['status'] != 'run':
             nspan = curTime - task['stime']
             mspan = task['span']
             if mspan > 0 and nspan > mspan:
@@ -79,7 +79,6 @@ class TaskDriver:
                 self.taskPool.apply_async(self.__runTaskInPool__, (curTime, task, 60))
 
     def __runTaskInPool__(self, curTime, task, mspan):
-        ltime, task['stime'], runCount = task['stime'], curTime, task['runCount']
 
         def updateTask():
             try:
@@ -87,11 +86,12 @@ class TaskDriver:
             except Exception as ex:
                 slog.error(ex)
 
+        task['stime'], ltime = curTime, task['stime']
+        if curTime - ltime < mspan:return  # check duplicate run
+
         if task['status'] != 'run':
-            task['status'] = 'run';task['runCount'] += 1
-            if task['runCount'] - runCount != 1 or((curTime - ltime) < mspan): return  # check duplicate run
+            task['status'] = 'run'; task['stime'], task['runCount'] = curTime, task['runCount'] + 1
             try:
-                task['stime'] = curTime
                 self.taskHandler.initRun(task)
                 updateTask()
                 self.taskHandler.run(task)
