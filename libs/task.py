@@ -33,12 +33,9 @@ class TaskDriver:
             task = {'key':taskKey, 'stime':time.time() - 60, 'rspan':0, 'status':'ready', 'runCount':int(runCount), 'pause':False}
             self.tasks[taskKey] = task
             self.taskHandler.prepare(task)
-
-        task['hour'], task['minute'], task['span'], task['maxCount'] = \
-            int(hour), int(minute), int(span), int(maxCount)
-        if task['status'] == 'finish':task['status'] = 'ready'
         for a in taskArgs:
-            task[a] = taskArgs[a]
+            if not ['stime', 'status'].__contains__(a): task[a] = taskArgs[a]
+        task['hour'], task['minute'], task['span'], task['maxCount'] = int(hour), int(minute), int(span), int(maxCount)
         return task
 
     def changeTask(self, taskKey, optype="run"):
@@ -78,7 +75,8 @@ class TaskDriver:
             self.taskPool.apply_async(self.__runTaskInPool__, (curTime, task))
 
     def __runTaskInPool__(self, curTime, task):
-        task['runCount'] += 1
+        task['stime'] = curTime
+        runCount = task['runCount']
 
         def updateTask():
             try:
@@ -86,19 +84,18 @@ class TaskDriver:
             except Exception as ex:
                 slog.error(ex)
 
-        if not task['pause'] and task['status'] != 'run' and task['status'] != 'wait':
+        if not ['run', 'init'].__contains__(task['status']):
+            task['status'] = "init";task['runCount'] += 1
+            if task['runCount'] - runCount != 1: return  # check duplicate run
             try:
-                task['status'] = "wait"
                 self.taskHandler.initRun(task)
-
-                task['stime'] = curTime
-                task['status'] = 'run'
+                task['status'] = 'run';task['stime'] = curTime
                 updateTask()
                 self.taskHandler.run(task)
-                task['status'] = 'stop'
+                task['status'] = 'wait'
             finally:
                 task['rspan'] = time.time() - curTime
-                if task['status'] != 'stop': task['status'] = 'exception'
+                if task['status'] != 'wait':task['status'] = 'exception'
                 try:
                     self.taskHandler.endRun(task)
                     updateTask()
