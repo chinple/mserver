@@ -47,9 +47,12 @@ class TaskDriver:
             self.tasks.__delitem__(taskKey)
         elif optype == "pause":
             task['pause'] = True
+        elif optype == 'asyncrun':
+            task['pause'] = False
+            self.taskPool.apply_async(self.__runTaskInPool__, (time.time(), task, 60))
         elif optype == 'run':
             task['pause'] = False
-            self.__runTaskInPool__(time.time(), task, 1)
+            self.__runTaskInPool__(time.time(), task, 60)
         return task
 
     def __startTimmer__(self):
