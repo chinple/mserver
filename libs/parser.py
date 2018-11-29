@@ -7,11 +7,15 @@ Created on 2010-11-8
 from json.decoder import JSONDecoder
 from json.encoder import JSONEncoder
 
+
 class __ObjStrEncoder__(JSONEncoder):
+
     def default(self, obj):
         return str(obj)
 
+
 class JsonParser:
+
     def __init__(self):
         self.jsDecoder = JSONDecoder()
         self.jsEncoder = __ObjStrEncoder__()
@@ -76,8 +80,15 @@ class JsonParser:
     def toStr(self, obj):
         return self.jsEncoder.encode(obj)
 
+
 _parser = JsonParser()
+
+
 def toJsonStr(obj):
-    return _parser.toStr(obj)
+    if isinstance(obj, dict) or isinstance(obj, list) or isinstance(obj, tuple):
+        return _parser.toStr(obj)
+    return obj
+
+
 def toJsonObj(jsonStr, isDeepClone=False):
     return _parser.toDict(jsonStr, isDeepClone)

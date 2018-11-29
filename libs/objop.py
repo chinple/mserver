@@ -343,8 +343,8 @@ Example:
         if type(args) == dict:
             jsonVal = args
             isParsed = True
-        elif jsonParser != None and len(args) > 0 and os.path.exists(args[0]):
-            jsonVal = jsonParser(args[0])
+        elif jsonParser is not None and os.path.exists(args[0]) and args[0].endswith(".json"):
+            jsonVal = jsonParser(open(args[0]).read())
             isParsed = True
         if isParsed:
             parseValue, leftArgs = parser.parse_args([])

@@ -12,17 +12,24 @@ from tmodel.model.casemodel import MTConst, TestCaseFactory
 from tmodel.model.paramgen import CombineGroupParam
 from libs.syslog import slog
 
+
 class BaseDriver:
+
     def __init__(self, tdriver):
         self.tdriver = tdriver
+
     def initDriver(self, **kwargs):
         self.tdriver.initDriver(**kwargs)
+
     def runDriver(self, *modelCls):
         self.tdriver.runDriver(*modelCls)
+
     def endDriver(self):
         self.tdriver.endDriver()
 
+
 class TestDriver:
+
     def __init__(self):
         self.tc = TestCaseFactory()
         self.tlog = self.tc.tlog
@@ -35,7 +42,7 @@ class TestDriver:
         self.endModelHandler = endModelHandler
 
     def initDriver(self, runMode, testrunConfig, logFilePath,
-            tcPattern, outTcPattern, propConf, pergroup, rungroup, isbyname, **extConf):
+            tcPattern, outTcPattern, propConf, pergroup, rungroup, isbyname, **_):
         searchKey = rungroup[0] if len(rungroup) == 1 else None
         self.groupArgs = tcPattern, outTcPattern, searchKey, pergroup, rungroup, isbyname
         self.logFilePath = logFilePath
@@ -259,7 +266,9 @@ class TestDriver:
             tb = tb.tb_next
         return tbInfo
 
+
 class GroupTestDriver(BaseDriver):
+
     def _calcTestCases(self, modelTypes, tcPattern=None, outTcPattern=None, searchKey=None):
         self.tdriver.tc.setRunCase(tcPattern, outTcPattern, searchKey, "show", True)
         runinfo = self.tdriver.__runCases__(*modelTypes)

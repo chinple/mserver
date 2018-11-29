@@ -30,7 +30,7 @@ class TaskDriver:
         if self.tasks.__contains__(taskKey):
             task = self.tasks[taskKey]
         else:
-            task = {'key':taskKey, 'stime':time.time() - 60, 'rspan':0, 'status':'ready', 'runCount':int(runCount), 'pause':False}
+            task = {'key':taskKey, 'stime':time.time() - 60, 'rspan':0, 'status':'ready', 'runCount':int(runCount), 'pause':False, 'rargs':None}
             self.tasks[taskKey] = task
             self.taskHandler.prepare(task)
         for a in taskArgs:
@@ -38,11 +38,12 @@ class TaskDriver:
         task['hour'], task['minute'], task['span'], task['maxCount'] = int(hour), int(minute), int(span), int(maxCount)
         return task
 
-    def changeTask(self, taskKey, optype="run"):
+    def changeTask(self, taskKey, optype, rargs):
         if not self.tasks.__contains__(taskKey):
             raise Exception("task not exist")
 
         task = self.tasks[taskKey]
+        if rargs: task['rargs'] = rargs
         if optype == 'delete':
             self.tasks.__delitem__(taskKey)
         elif optype == "pause":
@@ -52,7 +53,7 @@ class TaskDriver:
             self.taskPool.apply_async(self.__runTaskInPool__, (time.time(), task, 60))
         elif optype == 'run':
             task['pause'] = False
-            self.__runTaskInPool__(time.time(), task, 60)
+            self.__runTaskInPool__(time.time(), task, 10)
         return task
 
     def __startTimmer__(self):
@@ -71,9 +72,10 @@ class TaskDriver:
                 slog.error("Fail schedule: %s" % traceback.format_exc())
 
     def __runMatchSchedule__(self, curTime, nowHour, nowMin, task):
+        if task['status'] == 'run': return
         if (task['maxCount'] > 0 and task['maxCount'] <= task['runCount']):
             task['status'] = 'finish'
-        elif task['status'] != 'run':
+        else:
             nspan = curTime - task['stime']
             mspan = task['span']
             if mspan > 0 and nspan > mspan:
@@ -83,11 +85,11 @@ class TaskDriver:
 
     def __runTaskInPool__(self, curTime, task, mspan):
 
-        def updateTask():
+        def updateTask(isfinish=False, tret=None):
             try:
-                self.taskHandler.update(task)
+                self.taskHandler.update(task, isfinish, tret)
             except Exception as ex:
-                slog.error(ex)
+                slog.error("updateTask: %s" % ex)
 
         task['stime'], ltime = curTime, task['stime']
         if curTime - ltime < mspan:return  # check duplicate run
@@ -95,16 +97,17 @@ class TaskDriver:
         if task['status'] != 'run':
             task['status'] = 'run'; task['stime'], task['runCount'] = curTime, task['runCount'] + 1
             try:
+                tret = None
                 self.taskHandler.initRun(task)
                 updateTask()
-                self.taskHandler.run(task)
+                tret = self.taskHandler.run(task)
                 task['status'] = 'wait'
             finally:
                 task['rspan'] = time.time() - curTime
                 if task['status'] != 'wait':task['status'] = 'exception'
                 try:
                     self.taskHandler.endRun(task)
-                    updateTask()
+                    updateTask(True, tret)
                 except Exception as ex:
                     slog.error(ex)
             return 1
@@ -123,7 +126,7 @@ class FunctionTaskHandle:
     def prepare(self, task):  # one time
         task['fun'] = None
 
-    def update(self, task):  # sync task status no exception
+    def update(self, task, isfinish=True, tret=None):  # sync task status no exception
         pass
 
     def initRun(self, task):  # starting
@@ -159,6 +162,6 @@ class TaskMananger:
         task = taskGroup.resetTask(taskKey, hour, minute, span, maxCount, runCount, **taskArgs)
         return task
 
-    def operateTask(self, taskKey, groupName="function", optype="run"):
+    def operateTask(self, taskKey, groupName="function", optype="run", rargs=None):
         taskGroup = self.taskGroups[groupName]
-        return taskGroup.changeTask(taskKey, optype)
+        return taskGroup.changeTask(taskKey, optype, rargs)

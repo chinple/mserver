@@ -4,11 +4,10 @@ Created on 2010-9-28
 
 @author: chinple
 '''
-import sys
-
-reload(sys)
-eval('sys.setdefaultencoding("utf-8")')
 if __name__ == "__main__":
+    import sys
+    reload(sys)
+    eval('sys.setdefaultencoding("utf-8")')
     if len(sys.argv) <= 1:
         print("please type command: stop, server, test or perf")
     elif sys.argv[1] == "stop":

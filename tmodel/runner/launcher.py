@@ -8,6 +8,9 @@ from libs.refrect import DynamicLoader
 import sys
 from tmodel.runner.vdriver import TestViewDriver
 from libs.syslog import slog
+from libs.parser import toJsonObj
+import os
+
 
 def loadGroupRun(cases, gi, runargs, caseruninfo):
     from mtest import driver
@@ -22,11 +25,13 @@ def loadGroupRun(cases, gi, runargs, caseruninfo):
     tl.launch(True)
     caseruninfo.put(driver.tc.tcInfos)
 
+
 class TestLoader:
+
     def __init__(self, driver, args=None, mtArgs=None):
         self.driver = driver
         if args is not None:
-            mtArgs, parseMsg, isSuccess = ArgsOperation.parseArgs(args, [], None, *self.__getDefine())
+            mtArgs, parseMsg, isSuccess = ArgsOperation.parseArgs(args, [], toJsonObj, *self.__getDefine())
             slog.info(parseMsg)
             if not isSuccess:
                 sys.exit(-1)
@@ -57,6 +62,7 @@ class TestLoader:
         self.propConf = mtArgs.prop
         self.logServer = mtArgs.logServer
 
+        self.reportFile = mtArgs.reportFile
         self.emailProxy = mtArgs.emailProxy
         self.smtp = mtArgs.smtp
         self.sender = mtArgs.sender
@@ -68,8 +74,8 @@ class TestLoader:
         self.environment = mtArgs.environment
 
         self.fileList = []
+        if os.path.exists(self.curDir): os.chdir(self.curDir)
         for f in mtArgs.file:
-            import os
             if os.path.exists(f):
                 if os.path.isfile(f) or f == '.':
                     self.fileList.append(f)
@@ -78,6 +84,7 @@ class TestLoader:
         self.ignoreImportExcept = False
 
     def launch(self, returnRuninfo=False):
+
         driver = self.driver
         if self.runMode.startswith("m"):
             driver = TestViewDriver(self.driver)
@@ -89,10 +96,15 @@ class TestLoader:
             gt = GroupTestDriver(driver)
             runInfo = gt.runInProcess(runInfo, loadGroupRun, self.mtArgs)
         driver.endDriver()
-        if isinstance(runInfo, dict):
-            self.report(runInfo)
+        
         if returnRuninfo:
             return runInfo
+        if isinstance(runInfo, dict):
+            sr = self.report(runInfo)
+            if self.reportFile.endswith("html"):
+                with open(self.reportFile, "w") as r:
+                    r.writelines("<!--%s-->" % sr.subject)
+                    r.writelines(sr.htmlContent)
         try:
             return runInfo[2]
         except:pass
@@ -102,6 +114,7 @@ class TestLoader:
         sr = SummaryReport()
         sr.setReport(self.product, self.version, self.environment, runInfo, self.logServer, self.logFilePath)
         sr.sendEmail(self.emailProxy, self.smtp, self.smtpLogin, self.sender, self.receiver)
+        return sr
 
     def __loadModels(self):
         return DynamicLoader.getClassFromFile("ModelDecorator", self.ignoreImportExcept, *self.fileList)
@@ -144,6 +157,7 @@ Example:
     ("base", "baseClass such as TestCaseBase", ""),
     ("namespace", "namespace such as mtestGeneratedCode", ""),
 
+    ("reportFile", "test summary report file such as mtest-report.html", ""),
     ("emailProxy", "email proxy(ctool) address, such as localhost:8089", ""),
     ("smtp", "smtpAddress, such as mail.163.com:465"),
     ("sender", "mail sender"),

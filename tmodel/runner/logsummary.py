@@ -50,11 +50,11 @@ class LogAnalyzer:
         if logServer != "":
             for logfile in logfiles:
                 if os.path.exists(logfile):
-                    filename = time.strftime("test-%Y%m%d-%H%M%S") + logfile
+                    filename = time.strftime("test-%Y%m%d-%H%M%S-") + os.path.basename(logfile)
                     upcmd = 'curl "http://%s/fileupload/?filename=%s&folder=testlog" -F "upload=@%s"' % (logServer, filename, logfile)
                     slog.info(upcmd)
                     os.system(upcmd)
-                    self.loglinks.append('<a href="http://%s/testlog/%s">%s</a>' % (logServer, filename, logfile))
+                    self.loglinks.append('<a href="http://%s/testlog/%s">%s</a>' % (logServer, filename, os.path.basename(logfile)))
 
     def __makeTestSummary(self, totalNum, totalTime, passedNum, failedNum, notRunNum, cases):
         simpleSum = '\r\nTotal %s, %sm:\r\n\tPassed: %s + Failed: %s + NotRun: %s' % (totalNum, totalTime, passedNum, failedNum, notRunNum)
@@ -164,11 +164,9 @@ class SummaryReport:
         return mimeMail
 
     def sendEmail(self, emailProxy, smtpAddr, smtpLogin, sender, receiver):
-        if emailProxy == "" and smtpAddr == "":return
+        if emailProxy == "" or smtpAddr == "" or receiver == "":return
 
         try:
-            if receiver == "":
-                raise Exception("No receiver")
             receiver = receiver.split(";")
             mimeMail = self.__makeEmail(sender, receiver, self.subject, self.htmlContent)
             if emailProxy.strip() != "":
