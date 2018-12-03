@@ -141,7 +141,7 @@ Example:
     ("l", "log", "test log file", [], 'list'),
 
     ("c", "config", "test run config file", "mtest.ini"),
-    ("p", "prop", "propName=PropValue, configure mtest.ini by CMD arguments", [], "prop"),
+    ("p", "prop", "section.name=value, configure mtest.ini by CMD arguments", [], "prop"),
 
     ("i", "in", "tcPattern"),
     ("o", "out", "outTcPattern"),

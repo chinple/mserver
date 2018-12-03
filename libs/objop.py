@@ -367,12 +367,21 @@ Example:
             parseValue, leftArgs = parser.parse_args(args)
 
         for oname in propArgs:
+            rprop = parseValue.__dict__[oname]
             pval = {}
-            for propKeyVal in parseValue.__dict__[oname]:
+            for pk in rprop:
                 try:
-                    pIndex = propKeyVal.index('=')
-                    pval[propKeyVal[0:pIndex]] = propKeyVal[pIndex + 1:]
+                    if isinstance(rprop, dict):
+                        pv = rprop[pk]
+                    else:
+                        pIndex = pk.index('=')
+                        pk, pv = pk[0:pIndex], pk[pIndex + 1:]
+                    psec, pname = pk.split(".");psec, pname = psec.strip(), pname.strip()
+                    if psec == "" or pname == "":continue
+                    if not pval.__contains__(psec): pval[psec] = {}
+                    pval[psec][pname] = pv
                 except:pass
+
             parseValue.__dict__[oname] = pval
 
         isSuccess = True

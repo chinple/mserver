@@ -13,6 +13,7 @@ from libs.ini import IniConfigure
 from tmodel.model.logxml import TestLoggerFactory, TestLogger
 from libs.syslog import logManager, slog
 
+
 class MTConst:
     beginTestCaseInfo = "\n\t%s Running ..."
     endTestCaseInfo = "%s:\t%s"
@@ -30,10 +31,13 @@ class MTConst:
     failed = 2
     notRun = 3
 
+
 class TestCheck(Exception):
     pass
 
+
 class TestAssert(object):
+
     def __init__(self, tlog):
         self.isWarned = False
         self.tlog = tlog
@@ -62,7 +66,6 @@ class TestAssert(object):
         if expectedValue == actualValue:
             raise TestCheck(MTConst.equalInfo % ("Not ", "", expectedValue, actualValue, msg))
         self.tlog.success(MTConst.equalInfo % ("NOT ", "Not ", expectedValue, actualValue, msg))
-
     
     def isTrue(self, condition, msg):
         if not condition:
@@ -78,8 +81,10 @@ class TestAssert(object):
         if ignoreKey is None:
             cmpRes, cmpInfo = ObjOperation.jsonEqual(expectedValue, actualValue, isAddEqInfo)
         else:
+
             def isCmp(key, keyPath):
                 return not ignoreKey.__contains__(key)
+
             cmpRes, cmpInfo = ObjOperation.jsonEqual(expectedValue, actualValue, isAddEqInfo, isCmpHandler=isCmp)
         if cmpRes % 1000 != 0:
             raise TestCheck(MTConst.jsonContainInfo % ("NOT ", msg, cmpInfo))
@@ -87,6 +92,7 @@ class TestAssert(object):
 
     def captureIfAreEqual(self, expectedValue, actualValue, funPoint): 
         self.areEqual(expectedValue, actualValue, funPoint)
+
 
 class TestCaseFactory:
 
@@ -106,6 +112,10 @@ class TestCaseFactory:
         if not self.tprop.load(testrunConfig):
             if testrunConfig != "":
                 slog.warn("Not found testrunConfig: %s" % testrunConfig)
+        for sec in propConf:
+            if not self.tprop.sections.__contains__(sec): self.tprop.sections[sec] = propConf[sec]
+            else:
+                for p in propConf[sec]: self.tprop.sections[sec][p] = propConf[sec][p]
 
         self.isModeling = False
 
