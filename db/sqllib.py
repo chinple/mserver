@@ -176,7 +176,7 @@ class Sql:
                 val = _2sqlVal(val)
             if len(self.where) > 0:
                 self.where.append("and" if isAnd else "or")
-            self.where.append("%s %s %s " % ("" if isYesCond else " not", name, cond))
+            self.where.append("%s %s %s " % (name, "" if isYesCond else " not", cond))
             if isInCond or tv == int:
                 self.where.append("%s" % str(val))
             else:

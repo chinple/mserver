@@ -30,7 +30,7 @@ class TaskDriver:
         if self.tasks.__contains__(taskKey):
             task = self.tasks[taskKey]
         else:
-            task = {'key':taskKey, 'stime':time.time() - 60, 'rspan':0, 'status':'ready', 'runCount':int(runCount), 'pause':False, 'rargs':None}
+            task = {'key':taskKey, 'stime':time.time() - 60, 'rspan':0, 'status':'ready', 'result':9, 'runCount':int(runCount), 'pause':False, 'rargs':None}
             self.tasks[taskKey] = task
             self.taskHandler.prepare(task)
         for a in taskArgs:
