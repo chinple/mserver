@@ -56,7 +56,10 @@ class OnlineTaskClient(object):
     def receiveSyncTask(self, tasks):
         tkeys = []
         for task in tasks:
-            tkeys.append(self.task.addOnlineTask(self._taskmgr, task['taskid'], task['tkey'], task['targs'], task['ttype'], task['hour'], task['minute'], task['span'], task['maxCount'], task['runCount'], notifycond=task['notifycond'])['key'])
+            if self.nodename == task['tnode']:
+                tkeys.append(self.task.addOnlineTask(self._taskmgr, task['taskid'], task['tkey'], task['targs'], task['ttype'], task['hour'], task['minute'], task['span'], task['maxCount'], task['runCount'], notifycond=task['notifycond'])['key'])
+            else:
+                slog.warn("Node not match, drop task {tkey} {taskid}".format(**task))
         return tkeys
 
     def operateTask(self, tkey, optype, rargs=None):

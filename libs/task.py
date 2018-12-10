@@ -97,8 +97,13 @@ class TaskDriver:
         if task['status'] != 'run':
             task['status'] = 'run'; task['stime'], task['runCount'] = curTime, task['runCount'] + 1
             try:
+
                 tret = None
                 self.taskHandler.initRun(task)
+                try:
+                    time.sleep(task['rargs']['wait'])
+                except:pass
+
                 updateTask()
                 tret = self.taskHandler.run(task)
                 task['status'] = 'wait'
