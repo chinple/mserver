@@ -36,6 +36,12 @@ class OnlineTaskClient(object):
                 if not tkeys.__contains__(tkey):
                     self._taskmgr.operateTask(tkey, 'online', "delete")
             slog.info("Online tasks: %s" % ", ".join(tkeys))
+            try:
+                self.__reinitTasks__()
+            except:pass
+
+    def __reinitTasks__(self):
+        pass
 
     def _syncTasks(self, task=None, isfinish=False, tret=None):
         if task is not None:
@@ -57,7 +63,10 @@ class OnlineTaskClient(object):
         tkeys = []
         for task in tasks:
             if self.nodename == task['tnode']:
-                tkeys.append(self.task.addOnlineTask(self._taskmgr, task['taskid'], task['tkey'], task['targs'], task['ttype'], task['hour'], task['minute'], task['span'], task['maxCount'], task['runCount'], notifycond=task['notifycond'])['key'])
+                try:
+                    tkeys.append(self.task.addOnlineTask(self._taskmgr, task['taskid'], task['tkey'], task['targs'], task['ttype'], task['hour'], task['minute'], task['span'], task['maxCount'], task['runCount'], notifycond=task['notifycond'])['key'])
+                except:
+                    slog.warn("Drop task {taskid} {tkey}".format(**task))
             else:
                 slog.warn("Node not match, drop task {tkey} {taskid}".format(**task))
         return tkeys

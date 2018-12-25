@@ -43,14 +43,14 @@ class TaskDriver:
             raise Exception("task not exist")
 
         task = self.tasks[taskKey]
-        if rargs: task['rargs'] = rargs
+
         if optype == 'delete':
             self.tasks.__delitem__(taskKey)
         elif optype == "pause":
             task['pause'] = True
         elif optype == 'asyncrun':
             task['pause'] = False
-            self.taskPool.apply_async(self.__runTaskInPool__, (time.time(), task, 60))
+            self.taskPool.apply_async(self.__runTaskInPool__, (time.time(), task, 60, rargs))
         elif optype == 'run':
             task['pause'] = False
             self.__runTaskInPool__(time.time(), task, 10)
@@ -73,7 +73,7 @@ class TaskDriver:
 
     def __runMatchSchedule__(self, curTime, nowHour, nowMin, task):
         if task['status'] == 'run': return
-        if (task['maxCount'] > 0 and task['maxCount'] <= task['runCount']):
+        if (task['maxCount'] >= 0 and task['maxCount'] <= task['runCount']):
             task['status'] = 'finish'
         else:
             nspan = curTime - task['stime']
@@ -83,7 +83,7 @@ class TaskDriver:
             elif nspan > 60 and nowHour == task['hour'] and nowMin == task['minute']:
                 self.taskPool.apply_async(self.__runTaskInPool__, (curTime, task, 60))
 
-    def __runTaskInPool__(self, curTime, task, mspan):
+    def __runTaskInPool__(self, curTime, task, mspan, rargs=None):
 
         def updateTask(isfinish=False, tret=None):
             try:
@@ -97,11 +97,11 @@ class TaskDriver:
         if task['status'] != 'run':
             task['status'] = 'run'; task['stime'], task['runCount'] = curTime, task['runCount'] + 1
             try:
-
+                task['rargs'] = rargs
                 tret = None
                 self.taskHandler.initRun(task)
-                try:
-                    time.sleep(task['rargs']['wait'])
+                try:  # configured for each task
+                    time.sleep(task['targs']['delay'])
                 except:pass
 
                 updateTask()
