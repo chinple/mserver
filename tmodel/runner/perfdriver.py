@@ -10,7 +10,7 @@ import thread
 from libs.objop import ArgsOperation
 from libs.syslog import slog
 from libs.refrect import DynamicLoader
-from mtest import tprop
+from libs.ini import IniConfigure
 
 
 class ThreadRunner(Thread):
@@ -265,6 +265,7 @@ class StressReporter:
 class StressScheduler:
 
     def __init__(self):
+        self.pprop = IniConfigure()
         self.sreport = StressReporter()
         self.managers = {}
         self.setRunnerByArgs(False, ["-r", "show"])
@@ -276,32 +277,39 @@ class StressScheduler:
         if not isSuccess:
             import sys
             sys.exit(-1)
-        tprop.load(cArgs.config)
+        self.pprop.load(cArgs.config)
 
-        self.runMode = cArgs.runMode
-        self.inPattern = cArgs.inPattern
+        propConf = cArgs.prop
+        for sec in propConf:
+            if not self.pprop.sections.__contains__(sec): self.pprop.sections[sec] = propConf[sec]
+            else:
+                for p in propConf[sec]: self.pprop.sections[sec][p] = propConf[sec][p]
+
+        self.mode = cArgs.mode
+        self.inPattern = cArgs.__dict__['in']
         self.apiIntervalTps = cArgs.apiIntervalTps
         self.perfArgs = (cArgs.startThreads, cArgs.maxThreads, cArgs.step, cArgs.expTps) if cArgs.isResetPerf else None
         self.sreport.setReporter(cArgs.maxTime, cArgs.isKeepRunning)
         if cArgs.url != "":
             self.__checkCurl(cArgs)
 
-        DynamicLoader.getClassFromFile("stressScenario", False, *cArgs.stubFiles)
+        DynamicLoader.getClassFromFile("stressScenario", False, *cArgs.file)
 
     def __checkCurl(self, cArgs):
         url, body = cArgs.url, cArgs.body
         from server.cclient import curl
         stsHandler = lambda thid, degree: curl(url.replace("{thid}", str(thid)).replace("{degree}", str(degree)),
             body.replace("{thid}", str(thid)).replace("{degree}", str(degree)) if (body and body != "") else None)
-        if self.runMode == "debug":
+        if self.mode == "debug":
             print(stsHandler(0, 0))
         self.addScenario(stsHandler, cArgs.startThreads, cArgs.maxThreads, cArgs.step, cArgs.expTps)
 
     def __getDefine(self):
-        return (("r", "runMode", "run|show|debug", 'run'),
-            ("t", "stubFiles", "files", [], 'list'),
-            ("i", "inPattern", "in pattern", ''),
+        return (("r", "mode", "run|show|debug", 'run'),
+            ("t", "file", "files", [], 'list'),
+            ("i", "in", "in pattern", ''),
             ("c", "config", "test run config file", "mtest.ini"),
+            ("p", "prop", "section.name=value, configure mtest.ini by CMD arguments", [], "prop"),
             
             ("apiIntervalTps", "", 200, 'int'),
             ("maxTime", "", 9999999, 'int'),
@@ -341,10 +349,10 @@ class StressScheduler:
         for m in self.managers.values():
             if self.__isInscope__(m.stsHandler.__name__):
                 print(m)
-                if self.runMode == "debug":
+                if self.mode == "debug":
                     m.isDebug = 1
                     print("%s\t%s\n" % ("Passed" if m.runHandler(1, 1)[0] else "Failed", m.stsHandler.__name__))
-                elif self.runMode != "show":
+                elif self.mode != "show":
                     m.increase(m.startThreads)
                     isRunning = 1
                     continue

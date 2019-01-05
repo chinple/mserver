@@ -7,6 +7,8 @@ from tmodel.runner.perfdriver import StressScheduler
 
 _sc = StressScheduler()
 
+pprop = _sc.pprop
+
 
 def stressScenario(startThreads=3, maxThreads=10, step=1, expTps=50, interval=0):
 
