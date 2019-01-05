@@ -46,10 +46,12 @@ class OnlineTaskClient(object):
     def _syncTasks(self, task=None, isfinish=False, tret=None):
         if task is not None:
             slog.info(toJsonStr(task))
+        subject, body = None, None
         if isfinish:
-            subject, body = self.task.getTaskReport(task, tret)
-        else:
-            subject, body = None, None
+            try:
+                subject, body = self.task.getTaskReport(task, tret)
+            except Exception as ex:
+                slog.info("Fail to get report %s: %s" % (ex, task))
         try:
             return self._callServer(aname="_syncTaskNode",
                 task=task, subject=subject, body=body, tnode={'n':self.nodename, 'v':self.nodehost })

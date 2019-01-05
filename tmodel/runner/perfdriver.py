@@ -91,8 +91,7 @@ class StatisticRunner:
         if isTimeChange:
             if self.resetIntTime < self.curIntTime:
                 self.resetIntTime = self.curIntTime + self.sreport.resetStatistic(tpsIndex, self.sucTps, self.failTps)
-
-            self.notifyTimeChanged(intTime, tpsIndex)
+            if self.threadsCount > 0: self.notifyTimeChanged(intTime, tpsIndex)
 
         return isSuccess
 
