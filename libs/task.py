@@ -30,7 +30,7 @@ class TaskDriver:
         if self.tasks.__contains__(taskKey):
             task = self.tasks[taskKey]
         else:
-            task = {'key':taskKey, 'stime':time.time() - 60, 'rspan':0, 'status':'ready', 'result':9, 'runCount':int(runCount), 'pause':False, 'rargs':None}
+            task = {'key':taskKey, 'stime':time.time() - 60, 'rspan':0, 'status':'ready', 'result':9, 'runCount':int(runCount), 'fcount':0, 'ftime':0, 'pause':False, 'rargs':None}
             self.tasks[taskKey] = task
             self.taskHandler.prepare(task)
         for a in taskArgs:
@@ -108,6 +108,9 @@ class TaskDriver:
                 tret = self.taskHandler.run(task)
                 task['status'] = 'wait'
             finally:
+                if task['result'] > 0: task['fcount'] += 1
+                else: task['fcount'] = 0
+
                 task['rspan'] = time.time() - curTime
                 if task['status'] != 'wait':task['status'] = 'exception'
                 try:

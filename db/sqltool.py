@@ -10,7 +10,9 @@ from libs.objop import StrOperation
 from db.sqllib import SqlConnFactory, Sql
 from db.filedb import FileDataBase
 
+
 class SqlOpTool:
+
     def __init__(self, isCheckUpdate=True, isSupportDelete=False, isSupportAnySql=False, dbstoreName="dbstore", isMysqldb=True):
         self.conns = {}
         self.fdb = FileDataBase("./", keyDefines={"dbconfig":"equal"})
@@ -34,13 +36,14 @@ class SqlOpTool:
         if self.conns.__contains__(dbconfig):
             conn = self.conns[dbconfig]
         else:
+            conn = SqlConnFactory()
+            self.conns[dbconfig] = conn
             if self.isMysqldb:
                 from db.mysqldb import MysqldbConn
-                conn = SqlConnFactory(MysqldbConn, self.dbconfigs[dbconfig], 1)
+                conn.setSqlclass(MysqldbConn, self.dbconfigs[dbconfig], 1)
             else:
                 from db.pysql import PymysqlConn
-                conn = SqlConnFactory(PymysqlConn, self.dbconfigs[dbconfig], 1)
-            self.conns[dbconfig] = conn
+                conn.setSqlclass(PymysqlConn, self.dbconfigs[dbconfig], 1)
         return conn
 
     def __executeSql__(self, operation="show", fields="*", table="db", dbName="",
@@ -90,7 +93,9 @@ class SqlOpTool:
         else:
             return "Bad operation %s" % operation
 
+
 class BasicSqlTool(SqlOpTool):
+
     def __init__(self, isCheckUpdate=True, isSupportDelete=False, isSupportAnySql=False, dbstoreName="dbstore"):
         SqlOpTool.__init__(self, False, True, True, dbstoreName)
 
@@ -99,7 +104,7 @@ class BasicSqlTool(SqlOpTool):
 
     def executeSql(self, operation="show", fields="*", table="db", dbName="",
             where="1=1", whereArgs="", affectRows=100, dbconfig="local", base64Sql=""):
-        if base64Sql is not None and str(base64Sql).strip()!="":
+        if base64Sql is not None and str(base64Sql).strip() != "":
             import base64
             operation = base64.decodestring(base64Sql)
         return SqlOpTool.__executeSql__(self, operation, fields, table, dbName, where, whereArgs, affectRows, dbconfig)

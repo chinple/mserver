@@ -4,6 +4,7 @@ from libs.task import TaskMananger, FunctionTaskHandle
 from server.cclient import curlCservice
 from libs.parser import toJsonStr, toJsonObj
 from libs.syslog import slog
+import time
 
 
 class OnlineTaskClient(object):
@@ -48,10 +49,26 @@ class OnlineTaskClient(object):
             slog.info(toJsonStr(task))
         subject, body = None, None
         if isfinish:
-            try:
-                subject, body = self.task.getTaskReport(task, tret)
-            except Exception as ex:
-                slog.info("Fail to get report %s: %s" % (ex, task))
+            emailstatus = 0
+            if task['fcount'] == 0:
+                if task['ftime'] > 0:
+                    task['ftime'] = 0
+                    emailstatus = 1  # must send
+            elif task['ftime'] == 0:
+                task['ftime'] = time.time()
+            else:
+                if (time.time() - task['ftime']) < 7200:
+                    emailstatus = 2  # not send
+                else:
+                    task['ftime'] = time.time()
+                    emailstatus = 1
+
+            if task['notifycond'] == 'all' or (task['notifycond'] == 'failed' and task["result"] > 0) \
+                or (task['notifycond'] == 'condition' and (emailstatus == 1 or (emailstatus != 2 and task["result"] > 0))):
+                try:
+                    subject, body = self.task.getTaskReport(task, tret)
+                except Exception as ex:
+                    slog.info("Fail to get report %s: %s" % (ex, task))
         try:
             return self._callServer(aname="_syncTaskNode",
                 task=task, subject=subject, body=body, tnode={'n':self.nodename, 'v':self.nodehost })
@@ -66,9 +83,10 @@ class OnlineTaskClient(object):
         for task in tasks:
             if self.nodename == task['tnode']:
                 try:
-                    tkeys.append(self.task.addOnlineTask(self._taskmgr, task['taskid'], task['tkey'], task['targs'], task['ttype'], task['hour'], task['minute'], task['span'], task['maxCount'], task['runCount'], notifycond=task['notifycond'])['key'])
-                except:
-                    slog.warn("Drop task {taskid} {tkey}".format(**task))
+                    tkeys.append(self.task.addOnlineTask(self._taskmgr, task['taskid'], task['tkey'], task['targs'], task['ttype'], task['hour'], task['minute'], task['span'], task['maxCount'], task['runCount'],
+                        notifycond=task['notifycond'], opstatus=task['status'])['key'])
+                except Exception as ex:
+                    slog.warn("Drop task for {0} {taskid} {tkey}".format(ex, **task))
             else:
                 slog.warn("Node not match, drop task {tkey} {taskid}".format(**task))
         return tkeys
@@ -94,10 +112,12 @@ class SyncFunctionTaskHandle(FunctionTaskHandle):
     def update(self, task, isfinish, tret):
         self.uhandler(task, isfinish, tret)
     
-    def addOnlineTask(self, taskmgr, taskid, taskKey, targs, ttype, hour=-1, minute=0, span=-1, maxCount=-1, runCount=0, **taskprops):
+    def addOnlineTask(self, taskmgr, taskid, taskKey, targs, ttype, hour=-1, minute=0, span=-1, maxCount=-1, runCount=0, opstatus=None, **taskprops):
         task = taskmgr.saveTask(taskKey, 'online', hour, minute, span, maxCount, runCount,
             ttype=ttype, targs=toJsonObj(targs), taskid=taskid)
         for p in taskprops.keys(): task[p] = taskprops[p]
+        if opstatus == 'needrun':
+            taskmgr.operateTask(taskKey, 'online', 'asyncrun')
         return task
 
     def getTaskReport(self, task, tret):

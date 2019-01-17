@@ -85,8 +85,11 @@ class TestDriver:
                     continue
             else:
                 tcObj = modelType()
-
-            tcInfo, caseRunList = self.tc.getRunInfo(tcObj.__class__.__name__, tcObj)
+            try:
+                tcInfo, caseRunList = self.tc.getRunInfo(tcObj.__class__.__name__, tcObj)
+            except Exception as ex:
+                slog.error("No case: %s" % ex)
+                continue
 
             if len(caseRunList) == 0:
                 continue
