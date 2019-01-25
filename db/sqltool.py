@@ -102,8 +102,8 @@ class BasicSqlTool(SqlOpTool):
     def addConn(self, dbconfig, host, port, user, passwd):
         return SqlOpTool.__addConn__(self, dbconfig, host, port, user, passwd)
 
-    def executeSql(self, operation="show", fields="*", table="db", dbName="",
-            where="1=1", whereArgs="", affectRows=100, dbconfig="local", base64Sql=""):
+    def executeSql(self, operation="show", fields="*", table="db",
+            where="1=1", whereArgs="", affectRows=100, dbName="", dbconfig="local", base64Sql=""):
         if base64Sql is not None and str(base64Sql).strip() != "":
             import base64
             operation = base64.decodestring(base64Sql)
