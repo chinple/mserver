@@ -156,6 +156,7 @@ class Sql:
 
     def appendWhere(self, name, val, cond="=", isAnd=True, isRemoveEmpty=True, isYesCond=True):
         if val is not None:
+            if name[0] != '`': name = '`%s`' % name
             if isRemoveEmpty and val == "":
                 return self
             isInCond, tv = cond == 'in', type(val)
@@ -250,7 +251,7 @@ class Sql:
 
     def appendValue(self, name, val):
         if val != None:
-            self.names.append(name)
+            self.names.append(name if name[0] == "`" else ("`%s`" % name))
             self.values.append(_2sqlVal(val))
         return self
 

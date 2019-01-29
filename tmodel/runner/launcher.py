@@ -61,6 +61,7 @@ class TestLoader:
         self.curDir = mtArgs.dir
         self.propConf = mtArgs.prop
         self.logServer = mtArgs.logServer
+        self.logUrl = mtArgs.logUrl
 
         self.reportFile = mtArgs.reportFile
         self.emailProxy = mtArgs.emailProxy
@@ -112,7 +113,7 @@ class TestLoader:
     def report(self, runInfo):
         from tmodel.runner.logsummary import SummaryReport
         sr = SummaryReport()
-        sr.setReport(self.product, self.version, self.environment, runInfo, self.logServer, self.logFilePath)
+        sr.setReport(self.product, self.version, self.environment, runInfo, self.logServer, self.logUrl, self.logFilePath)
         sr.sendEmail(self.emailProxy, self.smtp, self.smtpLogin, self.sender, self.receiver)
         return sr
 
@@ -152,6 +153,7 @@ Example:
     ("isbyname", "isbyname: true means group represent test case name reg otherwise search key word reg", "false", 'bool'),
     ("timeout", "grouptimeout, set timeout(seconds) for every group when run cases in groups by asynchronous thread", 0, "int"),
     ("logServer", "log server of ctool"),
+    ("logUrl", "log url of ctool", ""),
 
     ("code", "codeFile"), ("graph", "graphPath"),
     ("base", "baseClass such as TestCaseBase", ""),

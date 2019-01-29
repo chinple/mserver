@@ -11,6 +11,7 @@ from libs.objop import ArgsOperation
 from libs.syslog import slog
 from libs.refrect import DynamicLoader
 from libs.ini import IniConfigure
+import os
 
 
 class ThreadRunner(Thread):
@@ -364,3 +365,7 @@ class StressScheduler:
                 isRunning = isRunning or m.isRunning
                 m.reportStatus()
                 time.sleep(0.3)
+                if os.path.exists("stop.perf"):
+                    print "Stop test for stop.perf"
+                    os.system("rm -rf stop.perf")
+                    m.stop()

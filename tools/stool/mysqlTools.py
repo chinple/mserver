@@ -22,13 +22,13 @@ class OnlineSqlTool(SqlOpTool):
         return SqlOpTool.__addConn__(self, configName, host, port, user, passwd).keys()
 
     def onlineExecuteSql(self, operation="show", fields="*", table="db",
-            where="1=1", whereArgs="", affectRows=100, dbName="", dbConfig="local", base64Sql=None):
+            where="1=1", whereArgs="", affectRows=10, dbName="", dbconfig="local", base64Sql=None):
         if base64Sql is not None and str(base64Sql).strip() != "":
             import base64
             operation = base64.decodestring(base64Sql)
             self.isSupportAnySql = True
         try:
-            return SqlOpTool.__executeSql__(self, operation, fields, table, dbName, where, whereArgs, affectRows, dbConfig)
+            return SqlOpTool.__executeSql__(self, operation, fields, table, dbName, where, whereArgs, affectRows, dbconfig)
         finally:
             self.isSupportAnySql = False
 

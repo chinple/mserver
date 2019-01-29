@@ -185,10 +185,10 @@ def curl(url, body=None, isReadResp=True, logHandler=None, logHeader=False, logR
         client.close()
 
 
-def curlCservice(hosts, infPath, isCheckResp=False, isGetInfo=False, logHandler=None, connTimeout=None, **args):
+def curlCservice(hosts, infPath, urlPath=None, isCheckResp=False, isGetInfo=False, logHandler=None, connTimeout=None, **args):
     from libs.parser import toJsonStr, toJsonObj
-
-    resp = curl("%s/cservice/%s" % (hosts, infPath), None if isGetInfo else toJsonStr(args), logHandler=logHandler, connTimeout=connTimeout)
+    if infPath: infPath = infPath.replace(".", "/")
+    resp = curl(("%s%s" % (hosts, urlPath)) if urlPath else ("%s/cservice/%s" % (hosts, infPath)), None if isGetInfo else toJsonStr(args), logHandler=logHandler, connTimeout=connTimeout)
     resp = toJsonObj(resp)
     if isCheckResp:
         if resp[0] != 0:

@@ -45,7 +45,7 @@ class LogAnalyzer:
 </table>'''
         self.subjectTemplate = '{product} Test Report({passPercent}%: {passed} passed, {failed} failed; {actTime} min: {span})'
 
-    def uploadTestlogs(self, logServer, logfiles):
+    def uploadTestlogs(self, logServer, logUrl, logfiles):
         self.loglinks = []
         if logServer != "":
             for logfile in logfiles:
@@ -54,7 +54,7 @@ class LogAnalyzer:
                     upcmd = 'curl "http://%s/fileupload/?filename=%s&folder=testlog" -F "upload=@%s"' % (logServer, filename, logfile)
                     slog.info(upcmd)
                     os.system(upcmd)
-                    self.loglinks.append('<a href="http://%s/testlog/%s">%s</a>' % (logServer, filename, os.path.basename(logfile)))
+                    self.loglinks.append('<a href="%s/testlog/%s">%s</a>' % (("http://%s" % logServer) if logUrl == "" else logUrl, filename, os.path.basename(logfile)))
 
     def __makeTestSummary(self, totalNum, totalTime, passedNum, failedNum, notRunNum, cases):
         simpleSum = '\r\nTotal %s, %sm:\r\n\tPassed: %s + Failed: %s + NotRun: %s' % (totalNum, totalTime, passedNum, failedNum, notRunNum)
@@ -145,8 +145,8 @@ class SummaryReport:
     def __init__(self):
         self.la = LogAnalyzer()
 
-    def setReport(self, product, version, environment, runInfo, logServer, logfiles):
-        self.la.uploadTestlogs(logServer, logfiles)
+    def setReport(self, product, version, environment, runInfo, logServer, logUrl, logfiles):
+        self.la.uploadTestlogs(logServer, logUrl, logfiles)
         subject, htmlContent = self.la.makeHtmlSummary(product, version, environment, runInfo)
         self.subject = subject
         self.htmlContent = htmlContent
