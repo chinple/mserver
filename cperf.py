@@ -24,12 +24,12 @@ def apiStatisticHandler(obj, objFun, tupleArg, jsonArg, adpInfo):
 
 
 def running(*args):
-    from libs.objop import StrOperation
     import sys
     
     if len(args) == 0:
         args = ("-t", sys.argv[0])
     elif len(args) == 1:
-        args = ["-t", sys.argv[0]] + StrOperation.splitStr(args[0], " ", '"')
+        from libs.objop import StrOperation
+        args = list(StrOperation.splitStr(args[0], " ", '"')) + ["-t", sys.argv[0]]
     _sc.setRunnerByArgs(True, args)
     _sc.launch()

@@ -8,7 +8,9 @@ import sys
 import os
 from libs.objop import StrOperation, FileOperation
 
+
 class DictObjOperation:
+
     def __init__(self, dictObj, storeName, isListOrder=False):
         self.dictObj = dictObj
         self.storeName = os.path.abspath(os.curdir + "/" + storeName)
@@ -91,6 +93,7 @@ class DictObjOperation:
         except:
             return False
 
+
 class DynamicLoader:
 
     @staticmethod
@@ -115,12 +118,22 @@ class DynamicLoader:
                     importToList.append(obj)
 
     @staticmethod
-    def getClassFromFile(className=None, ignoreImportExcept=True, *paths):
+    def getClassFromFile(className=None, ignoreImportExcept=True, searchFolder=False, *paths):
         for dirPath in paths:
             DynamicLoader.addSysPath(dirPath)
 
+        pyfiles = []
+        if searchFolder:
+            for f in paths:
+                if os.path.exists(f):
+                    if os.path.isfile(f) or f == '.':
+                        pyfiles.append(f)
+                    else:
+                        pyfiles = pyfiles + FileOperation.getSubFiles(f, ".py", True)
+        else:
+            pyfiles = paths
         csList = []
-        for filePath in paths:
+        for filePath in pyfiles:
             if filePath.endswith(".py") or filePath.endswith(".pyc"):
                 module = FileOperation.splitPathName(filePath)[1].split(".")[0]
                 if ignoreImportExcept:

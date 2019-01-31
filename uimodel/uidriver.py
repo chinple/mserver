@@ -32,7 +32,7 @@ class UIDriver:
         for f in cArgs.uisourcefile:
             self.ui.loadUI(f)
 
-        for cls in DynamicLoader.getClassFromFile(None, True, cArgs.uitoolClass):
+        for cls in DynamicLoader.getClassFromFile(None, True, True, cArgs.uitoolClass):
             try:
                 isSubcls = issubclass(cls, UIToolBase)
             except:

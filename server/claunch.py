@@ -93,7 +93,7 @@ def createCservice(servicePath, cserviceInfo, cserviceProxy, stubFiles, rHandler
 
     from libs.refrect import DynamicLoader
     ignoreImportExcept = False
-    DynamicLoader.getClassFromFile(None, ignoreImportExcept, *stubFiles)
+    DynamicLoader.getClassFromFile(None, ignoreImportExcept, True, *stubFiles)
 
     slog.info("Service: %s" % ", ".join([c[0].__name__ for c in cserviceInfo]))
     cservice = ObjHandler()

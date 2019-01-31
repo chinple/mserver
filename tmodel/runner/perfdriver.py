@@ -12,6 +12,7 @@ from libs.syslog import slog
 from libs.refrect import DynamicLoader
 from libs.ini import IniConfigure
 import os
+from libs.parser import toJsonObj
 
 
 class ThreadRunner(Thread):
@@ -269,10 +270,11 @@ class StressScheduler:
         self.pprop = IniConfigure()
         self.sreport = StressReporter()
         self.managers = {}
+        self.ignoreImportExcept = True
         self.setRunnerByArgs(False, ["-r", "show"])
 
     def setRunnerByArgs(self, isShowMsg, args):
-        cArgs, parseMsg, isSuccess = ArgsOperation.parseArgs(list(args), [], None, *self.__getDefine())
+        cArgs, parseMsg, isSuccess = ArgsOperation.parseArgs(list(args), [], toJsonObj, *self.__getDefine())
         if isShowMsg:
             print(parseMsg)
         if not isSuccess:
@@ -294,7 +296,7 @@ class StressScheduler:
         if cArgs.url != "":
             self.__checkCurl(cArgs)
 
-        DynamicLoader.getClassFromFile("stressScenario", False, *cArgs.file)
+        DynamicLoader.getClassFromFile("stressScenario", self.ignoreImportExcept, True, *cArgs.file)
 
     def __checkCurl(self, cArgs):
         url, body = cArgs.url, cArgs.body

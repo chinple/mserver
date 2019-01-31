@@ -74,14 +74,8 @@ class TestLoader:
         self.version = mtArgs.version
         self.environment = mtArgs.environment
 
-        self.fileList = []
+        self.fileList = mtArgs.file
         if os.path.exists(self.curDir): os.chdir(self.curDir)
-        for f in mtArgs.file:
-            if os.path.exists(f):
-                if os.path.isfile(f) or f == '.':
-                    self.fileList.append(f)
-                else:
-                    self.fileList = self.fileList + FileOperation.getSubFiles(f, ".py", True)
         self.ignoreImportExcept = False
 
     def launch(self, returnRuninfo=False):
@@ -118,7 +112,7 @@ class TestLoader:
         return sr
 
     def __loadModels(self):
-        return DynamicLoader.getClassFromFile("ModelDecorator", self.ignoreImportExcept, *self.fileList)
+        return DynamicLoader.getClassFromFile("ModelDecorator", self.ignoreImportExcept, True, *self.fileList)
 
     def __getDefine(self):
         return  (('-', '''%prog [options]
