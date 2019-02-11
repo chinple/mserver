@@ -13,6 +13,7 @@ from libs.refrect import DynamicLoader
 from libs.ini import IniConfigure
 import os
 from libs.parser import toJsonObj
+import sys
 
 
 class ThreadRunner(Thread):
@@ -147,6 +148,12 @@ class ThreadStatisticRunner(StatisticRunner):
         for t in self.threads:
             t.isContinue = False
 
+    def getAliveRunner(self):
+        c = 0
+        for t in self.threads:
+            if t.isAlive(): c += 1
+        return c
+
     def notifyTimeChanged(self, intTime, tpsIndex):
         StatisticRunner.notifyTimeChanged(self, intTime, tpsIndex)
 
@@ -278,7 +285,6 @@ class StressScheduler:
         if isShowMsg:
             print(parseMsg)
         if not isSuccess:
-            import sys
             sys.exit(-1)
         self.pprop.load(cArgs.config)
 
@@ -315,7 +321,7 @@ class StressScheduler:
             ("p", "prop", "section.name=value, configure mtest.ini by CMD arguments", [], "prop"),
             
             ("apiIntervalTps", "", 200, 'int'),
-            ("maxTime", "", 9999999, 'int'),
+            ("maxTime", "", 30, 'int'),
             ("isKeepRunning", "", False, 'bool'),
             
             ("url", "curl URL for stress test, such as http://127.0.0.1/", ''),
@@ -361,9 +367,11 @@ class StressScheduler:
                     continue
             m.stop()
 
-        while isRunning:
-            isRunning = 0
+        stopwait = 0
+        while isRunning and stopwait < 10:
+            isRunning, ac = 0, 0
             for m in self.managers.values():
+                ac += m.getAliveRunner()
                 isRunning = isRunning or m.isRunning
                 m.reportStatus()
                 time.sleep(0.3)
@@ -371,3 +379,8 @@ class StressScheduler:
                     print "Stop test for stop.perf"
                     os.system("rm -rf stop.perf")
                     m.stop()
+            if not isRunning and ac > 0:
+                stopwait += 0.3
+                isRunning = 1
+        if stopwait > 10: print "Force stop testing"
+        sys.exit(0)
