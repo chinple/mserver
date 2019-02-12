@@ -110,13 +110,13 @@ class TaskDriver:
 
                 updateTask()
                 tret = self.taskHandler.run(task)
-                task['status'] = 'finish'
+                task['status'] = 'finish' if (task['maxCount'] >= 0 and task['maxCount'] <= task['runCount']) else 'wait'
             finally:
                 if task['result'] > 0: task['fcount'] += 1
                 else: task['fcount'] = 0
 
                 task['rspan'] = time.time() - curTime
-                if task['status'] != 'finish':task['status'] = 'exception'
+                if task['status'] == 'run':task['status'] = 'exception'
                 try:
                     self.taskHandler.endRun(task)
                     updateTask(True, tret)
