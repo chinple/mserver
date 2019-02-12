@@ -23,7 +23,6 @@ class TaskDriver:
         if interval < 0.1:
             interval = 0.1
         self.interval = interval
-        self.count = 0
         self.taskHandler = taskHandler
 
     def resetTask(self, taskKey, hour, minute, span, maxCount, runCount, **taskArgs):
@@ -57,10 +56,13 @@ class TaskDriver:
         return task
 
     def __startTimmer__(self):
+        tp = ThreadPool(3)
         while 1:
-            self.count += 1
-            Thread(name="time-task", target=self.__runAllTask__).start()
-            time.sleep(self.interval)
+            try:
+                tp.apply_async(self.__runAllTask__)
+                time.sleep(self.interval)
+            except Exception as ex:
+                slog.error("Main thread: %s" % ex)
 
     def __runAllTask__(self):
         now = time.localtime()
@@ -82,6 +84,8 @@ class TaskDriver:
                 self.taskPool.apply_async(self.__runTaskInPool__, (curTime, task, mspan))
             elif nspan > 60 and nowHour == task['hour'] and nowMin == task['minute']:
                 self.taskPool.apply_async(self.__runTaskInPool__, (curTime, task, 60))
+            else:
+                task['status'] = 'wait %s' % curTime
 
     def __runTaskInPool__(self, curTime, task, mspan, rargs=None):
 
@@ -106,13 +110,13 @@ class TaskDriver:
 
                 updateTask()
                 tret = self.taskHandler.run(task)
-                task['status'] = 'wait'
+                task['status'] = 'finish'
             finally:
                 if task['result'] > 0: task['fcount'] += 1
                 else: task['fcount'] = 0
 
                 task['rspan'] = time.time() - curTime
-                if task['status'] != 'wait':task['status'] = 'exception'
+                if task['status'] != 'finish':task['status'] = 'exception'
                 try:
                     self.taskHandler.endRun(task)
                     updateTask(True, tret)
