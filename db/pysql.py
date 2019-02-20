@@ -14,11 +14,13 @@ class PymysqlConn(SqlConnBase):
         try:
             if isSelect:     
                 c = self.conn.cursor(pymysql.cursors.DictCursor if isFethall else None)
+                if dbName is not None: c.execute("use %s" % dbName)
                 res = c.execute(sqlStr)
                 if isFethall:
                     res = c.fetchall()
             else:
                 c = self.conn.cursor()
+                if dbName is not None: c.execute("use %s" % dbName)
                 res = c.execute(sqlStr)
                 if res > 0 and isCommit:
                     c.execute('commit')
