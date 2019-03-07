@@ -11,6 +11,7 @@ import time
 from tmodel.model.casemodel import MTConst, TestCaseFactory
 from tmodel.model.paramgen import CombineGroupParam
 from libs.syslog import slog
+from tmodel.model.astat import ApiStatistic
 
 
 class BaseDriver:
@@ -32,6 +33,7 @@ class TestDriver:
 
     def __init__(self):
         self.tc = TestCaseFactory()
+        self.astat = ApiStatistic()
         self.tlog = self.tc.tlog
         self.tassert = self.tc.tassert
         self.setDriver()
@@ -42,15 +44,16 @@ class TestDriver:
         self.endModelHandler = endModelHandler
 
     def initDriver(self, runMode, testrunConfig, logFilePath,
-            tcPattern, outTcPattern, propConf, pergroup, rungroup, isbyname, **_):
+            tcPattern, outTcPattern, propConf, pergroup, rungroup, isbyname, astatHost, astatEnv, **_):
         searchKey = rungroup[0] if len(rungroup) == 1 else None
         self.groupArgs = tcPattern, outTcPattern, searchKey, pergroup, rungroup, isbyname
         self.logFilePath = logFilePath
+        if astatHost != "": self.astat.setStatistic(astatHost, astatEnv, 86400)
         self.tc.init(runMode, testrunConfig, logFilePath,
             tcPattern, outTcPattern, searchKey, propConf)
 
     def endDriver(self):
-        pass
+        self.astat.finishApi()
 
     def runDriver(self, *modelTypes):
         gd = GroupTestDriver(self)

@@ -12,6 +12,7 @@ driver = TestDriver()
 tlog = driver.tc.tlog
 tassert = driver.tc.tassert
 tprop = driver.tc.tprop
+astat = driver.astat
 
 # Test case example, see @SampleTestCase, 
 # @model()

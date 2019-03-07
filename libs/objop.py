@@ -151,7 +151,7 @@ class FileOperation:
         mergTo.close()
 
     @staticmethod
-    def getSubFiles(fpath, ftype=None, findSubFile=True):
+    def getSubFiles(fpath, ftype=None, findSubFile=1):
         subFiles = []
         fpath = str(fpath).replace("\\", "/")
         if not os.path.isdir(fpath):
@@ -165,7 +165,7 @@ class FileOperation:
             fname = fpath + fname
             if os.path.isdir(fname):
                 if findSubFile:
-                    subFiles = subFiles + FileOperation.getSubFiles(fname + "/", ftype)
+                    subFiles = subFiles + FileOperation.getSubFiles(fname + "/", ftype, findSubFile - 1)
             elif ftype == None or fname.endswith(ftype):
                 subFiles.append(fname)
         return subFiles

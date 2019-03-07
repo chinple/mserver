@@ -118,7 +118,7 @@ class DynamicLoader:
                     importToList.append(obj)
 
     @staticmethod
-    def getClassFromFile(className=None, ignoreImportExcept=True, searchFolder=False, *paths):
+    def getClassFromFile(className=None, ignoreImportExcept=True, searchFolder=1, *paths):
         for dirPath in paths:
             DynamicLoader.addSysPath(dirPath)
 
@@ -129,7 +129,7 @@ class DynamicLoader:
                     if os.path.isfile(f) or f == '.':
                         pyfiles.append(f)
                     else:
-                        pyfiles = pyfiles + FileOperation.getSubFiles(f, ".py", True)
+                        pyfiles = pyfiles + FileOperation.getSubFiles(f, ".py", searchFolder - 1)
         else:
             pyfiles = paths
         csList = []

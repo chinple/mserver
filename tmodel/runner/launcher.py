@@ -3,7 +3,7 @@ Created on 2011-2-21
 
 @author: chinple
 '''
-from libs.objop import ArgsOperation, FileOperation
+from libs.objop import ArgsOperation
 from libs.refrect import DynamicLoader
 import sys
 from tmodel.runner.vdriver import TestViewDriver
@@ -62,6 +62,8 @@ class TestLoader:
         self.propConf = mtArgs.prop
         self.logServer = mtArgs.logServer
         self.logUrl = mtArgs.logUrl
+        self.astatHost = mtArgs.astatHost
+        self.astatEnv = mtArgs.astatEnv
 
         self.reportFile = mtArgs.reportFile
         self.emailProxy = mtArgs.emailProxy
@@ -76,7 +78,7 @@ class TestLoader:
 
         self.fileList = mtArgs.file
         if os.path.exists(self.curDir): os.chdir(self.curDir)
-        self.ignoreImportExcept = False
+        self.ignoreImportExcept = self.runMode == 'run'
 
     def launch(self, returnRuninfo=False):
 
@@ -148,6 +150,8 @@ Example:
     ("timeout", "grouptimeout, set timeout(seconds) for every group when run cases in groups by asynchronous thread", 0, "int"),
     ("logServer", "log server of ctool"),
     ("logUrl", "log url of ctool", ""),
+    ("astatHost", "host of API statistic", ""),
+    ("astatEnv", "environment of API statistic", "test"),
 
     ("code", "codeFile"), ("graph", "graphPath"),
     ("base", "baseClass such as TestCaseBase", ""),

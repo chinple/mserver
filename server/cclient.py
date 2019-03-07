@@ -5,6 +5,7 @@ Created on 2012-6-11
 '''
 import re
 from httplib import HTTPConnection, OK
+import urllib
 
 
 class HttpRequestConnection(HTTPConnection):
@@ -148,7 +149,6 @@ class HttpClient:
 
 def encodeUrl(jdata):
     from libs.parser import toJsonStr
-    import urllib
 
     if jdata is None:return
     ds = []
@@ -216,7 +216,7 @@ def _jsonToUrlValue(value, urlValues, key=""):
     else:
         if value is not None:
             if key != "":
-                urlValues.append("%s=%s" % (key, value))
+                urlValues.append("%s=%s" % (key, urllib.quote(str(value))))
             else:
                 urlValues.append(str(value))
 
@@ -225,3 +225,46 @@ def jsonToUrlValue(jsonObj):
     urlValues = []
     _jsonToUrlValue(jsonObj, urlValues)
     return "&".join(urlValues)
+
+
+class AsyncCallFun:
+
+    def __init__(self, proHandler, conHandler, tspan, maxidletime=None):
+        import Queue
+        from threading import Thread 
+        self.q = Queue.Queue()
+        self.iscontinue = True
+        Thread(target=self.produce, args=(tspan, proHandler), name="a-pro").start()
+        Thread(target=self.consume, args=(tspan, maxidletime, conHandler), name="a-con").start()
+
+    def stop(self):
+        self.iscontinue = False
+
+    def produce(self, tspan, proHandler):
+        import time
+        tc = int(tspan / .5)
+        while self.iscontinue:
+            t = time.time()
+            if tspan > 0:
+                i = 0
+                while self.iscontinue and i < tc:
+                    i += 1;time.sleep(.5)
+            if self.iscontinue:
+                self.q.put((t, proHandler()), False)
+    
+    def consume(self, tspan, maxidletime, conHandler):
+        idletimes = 0
+        while self.iscontinue:
+            try:
+                t, s = self.q.get(True, tspan)
+                if len(s) == 0:
+                    idletimes += 1
+                else:
+                    conHandler(t, s)
+                    del s
+                    idletimes = 0
+            except:
+                idletimes += .5
+                
+            if maxidletime and idletimes > maxidletime:
+                self.stop();self.q.empty();break

@@ -58,19 +58,20 @@ class StatisticRunner:
 
     def runHandler(self, *args, **vargs):
         startTime = time.time()
-        isSuccess, ret = True, None
+        e, ret = None, None
         try:
             ret = self.stsHandler(*args, **vargs)
         except Exception as ex:
-            slog.warn("FAIL %s" % ex)
-            isSuccess = False
+            e = ex
             if self.isDebug:
                 import traceback
                 print(traceback.format_exc())
-        endTime = time.time()
-        runTime = endTime - startTime
-
-        return self._statisticRunInfo(endTime, runTime, isSuccess), ret
+        finally:
+            endTime = time.time()
+            runTime = endTime - startTime
+            sr = self._statisticRunInfo(endTime, runTime, e is None)
+            if e: slog.warn("\tPFAIL %s" % ex)
+            return sr, ret
 
     def _statisticRunInfo(self, curTime, runTime, isSuccess):
         intTime, tpsIndex = self.sreport.getStaticTime(curTime)
