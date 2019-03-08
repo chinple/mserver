@@ -54,7 +54,7 @@ def model(testModule="", testName=None, imports='', testOrder=None, **searchKey)
     return __ModelMiddleFun
 
 
-def adapter(adapterHandler=None, adapterReg='[A-z].*', enableadapter=True, **adapterInfo):
+def adapter(adapterHandler=None, adapterReg='[a-zA-Z]', enableadapter=True, **adapterInfo):
 
     def __adapterMiddleFun(adpCls):
 
@@ -82,6 +82,7 @@ def testing(*args):
     elif len(args) == 1:
         from libs.objop import StrOperation
         args = list(StrOperation.splitStr(args[0], " ", '"')) + ["-f", sys.argv[0]]
+
     tcode = TestLoader(driver, list(args)).launch()
     sys.exit(0 if tcode is None else tcode)
 

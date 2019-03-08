@@ -85,14 +85,15 @@ class TestLoader:
         driver = self.driver
         if self.runMode.startswith("m"):
             driver = TestViewDriver(self.driver)
-
-        driver.initDriver(**self.__dict__)
-        runInfo = driver.runDriver(*self.__loadModels())
-        if isinstance(runInfo, list):
-            from tmodel.runner.driver import GroupTestDriver
-            gt = GroupTestDriver(driver)
-            runInfo = gt.runInProcess(runInfo, loadGroupRun, self.mtArgs)
-        driver.endDriver()
+        try:
+            driver.initDriver(**self.__dict__)
+            runInfo = driver.runDriver(*self.__loadModels())
+            if isinstance(runInfo, list):
+                from tmodel.runner.driver import GroupTestDriver
+                gt = GroupTestDriver(driver)
+                runInfo = gt.runInProcess(runInfo, loadGroupRun, self.mtArgs)
+        finally:
+            driver.endDriver()
         
         if returnRuninfo:
             return runInfo

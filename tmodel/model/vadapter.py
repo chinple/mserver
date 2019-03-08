@@ -27,7 +27,7 @@ class AdapterFunDecorator:
     @staticmethod
     def getAttrHandler(obj, name, *args, **kwargs):
         objFun = object.__getattribute__(obj, name)
-        if type(objFun).__name__ == 'instancemethod' and re.match(obj.__mtestAdapterInfo__['_sys_r'], name) != None:
+        if type(objFun).__name__ == 'instancemethod' and re.match(obj.__mtestAdapterInfo__['_sys_r'], name) is not None:
             return AdapterFunDecorator(obj, objFun).anyFunHandle
         return objFun
 
