@@ -9,11 +9,11 @@ import math
 import thread
 from libs.objop import ArgsOperation
 from libs.syslog import slog
-from libs.refrect import DynamicLoader
 from libs.ini import IniConfigure
 import os
 from libs.parser import toJsonObj
 import sys
+from tmodel.model.astat import ApiStatistic
 
 
 class ThreadRunner(Thread):
@@ -277,6 +277,7 @@ class StressScheduler:
     def __init__(self):
         self.pprop = IniConfigure()
         self.sreport = StressReporter()
+        self.pstat = ApiStatistic()
         self.managers = {}
         self.ignoreImportExcept = True
         self.setRunnerByArgs(False, ["-r", "show"])
@@ -302,7 +303,7 @@ class StressScheduler:
         self.sreport.setReporter(cArgs.maxTime, cArgs.isKeepRunning)
         if cArgs.url != "":
             self.__checkCurl(cArgs)
-
+        from libs.refrect import DynamicLoader
         DynamicLoader.getClassFromFile("stressScenario", self.ignoreImportExcept, True, *cArgs.file)
 
     def __checkCurl(self, cArgs):
@@ -355,6 +356,13 @@ class StressScheduler:
             startThreads , maxThreads , step, expTps, interval))
 
     def launch(self):
+        try:
+            self._planch()
+        finally:
+            self.pstat.finishApi()
+            sys.exit(0)
+
+    def _planch(self):
         isRunning = 0
         for m in self.managers.values():
             if self.__isInscope__(m.stsHandler.__name__):
@@ -384,4 +392,3 @@ class StressScheduler:
                 stopwait += 0.3
                 isRunning = 1
         if stopwait > 10: print "Force stop testing"
-        sys.exit(0)

@@ -92,7 +92,7 @@ class OnlineTaskClient(object):
         return tkeys
 
     def operateTask(self, tkey, optype, rargs=None):
-        return self._taskmgr.operateTask(tkey, "online", optype, rargs)
+        return self._taskmgr.operateTask(tkey, "online", optype, toJsonObj(rargs))
 
     def getTasks(self, g='online'):
         return self._taskmgr.taskGroups[g].tasks
@@ -111,6 +111,12 @@ class SyncFunctionTaskHandle(FunctionTaskHandle):
 
     def update(self, task, isfinish, tret):
         self.uhandler(task, isfinish, tret)
+        try:
+            if task['rargs'] and task['rargs'].__contains__("callback"):
+                from server.cclient import curl
+                curl(task['rargs']['callback'] + "&status=" + task['status'], connTimeout=2)
+        except Exception as ex:
+            slog.info("%s callback: %s" % (task['key'], ex))
     
     def addOnlineTask(self, taskmgr, taskid, taskKey, targs, ttype, hour=-1, minute=0, span=-1, maxCount=-1, runCount=0, opstatus=None, **taskprops):
         task = taskmgr.saveTask(taskKey, 'online', hour, minute, span, maxCount, runCount,
