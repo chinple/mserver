@@ -135,14 +135,18 @@ class ThreadStatisticRunner(StatisticRunner):
         self.interval = float(interval)
 
     def increase(self, threads):
+        thi = self.threadsCount
         self.threadsLock.acquire()
-        while threads > 0 and self.maxThreads > (self.threadsCount + 1):
-            threads -= 1
-            th = ThreadRunner(self, self.threadsCount, self.interval)
-            self.threads.append(th)
-            self.threadsCount += 1
-            th.start()
-        self.threadsLock.release()
+        try:
+            while threads > 0 and self.maxThreads > self.threadsCount:
+                threads -= 1
+                th = ThreadRunner(self, self.threadsCount, self.interval)
+                self.threads.append(th)
+                self.threadsCount += 1
+        finally:
+            self.threadsLock.release()
+        for i in range(thi, len(self.threads)):
+            self.threads[i].start()
 
     def stop(self):
         self.isRunning = 0
